@@ -1,0 +1,243 @@
+---
+title: "Next.js Adapter"
+description: "Set up and configure the managed Next.js App Router shell."
+slug: "nextjs-adapter"
+editUrl: "https://github.com/El37628/FluxFast/edit/main/docs/nextjs-adapter.md"
+---
+FluxFast supports Next.js 16.3+ with React 19 and the App Router. FastAPI remains
+the application router; Next.js supplies the document, bundling, React runtime,
+and code splitting through one optional catch-all shell.
+
+## Automatic setup
+
+Run the initializer from an existing Next.js application:
+
+```bash
+npm install @fluxfast/next
+npx fluxfast init
+```
+
+The initializer detects TypeScript or JavaScript and `src/` or root layout,
+validates the installed packages and App Router, then prepares:
+
+```text
+src/flux-pages/
+src/fluxfast.config.ts
+src/app/(flux)/[[...flux]]/page.tsx
+src/.fluxfast/pages.generated.ts
+next.config.ts
+```
+
+For a root-layout or JavaScript project it uses the corresponding root paths and
+file extensions. Existing FluxFast configuration is preserved, and an existing
+`withFluxFast()` wrapper is not duplicated. Running `init` again is safe and
+regenerates the page registry.
+
+Preview the exact file plan without writing anything:
+
+```bash
+npx fluxfast init --dry-run
+```
+
+Check whether setup is complete without modifying files:
+
+```bash
+npx fluxfast init --check
+```
+
+The standard Create Next App home page can be migrated to
+`flux-pages/home/index`. A custom page or a page using Server Component APIs is
+left untouched; the command reports the manual action and exits nonzero rather
+than risking user code. Resolve the route conflict and run `init` again.
+
+## CLI commands
+
+The v0.9 public CLI surface is:
+
+| Command | Supported options | Purpose |
+| --- | --- | --- |
+| `npx fluxfast init` | `--dry-run`, `--yes`, `--force` | Analyze, configure, and generate the frontend scaffold. `--dry-run` plans without writes; `--force` may replace invalid generated shell files; `--yes` remains accepted for non-interactive compatibility and is currently a no-op because initialization does not prompt. |
+| `npx fluxfast init` | `--check` (used alone) | Return success only when configuration is complete, without writes. |
+| `npx fluxfast generate` | `--check`, `--schema-file PATH` | Regenerate every frontend artifact, optionally from an explicit backend schema file. `--check` compares without writing and may be combined with `--schema-file`. |
+| `npx fluxfast doctor` | none | Diagnose packages, layout, routes, config, pages, schema manifests, and registry freshness without writes. |
+
+`init --check` and `doctor` are read-only and return a nonzero exit status when
+they find a blocking problem, which makes either command suitable for CI.
+`doctor` also prints registered component names, schema/2 diagnostics, contract
+naming collision warnings, and actionable repair commands.
+
+The CLI finds the nearest parent `package.json`, then detects TypeScript versus
+JavaScript and root versus `src/` layout. v0.9 has no public project-root,
+language, or layout override flags; run the command from within the intended
+project. Command names, the options above, their major semantics, success as
+exit `0`, and failure as nonzero are stable throughout 1.x. Exact
+diagnostic wording is not frozen.
+
+## Typed contract generation
+
+From a directory that can import the FastAPI application, generate the backend
+manifest and all frontend TypeScript artifacts together:
+
+```bash
+fluxfast types backend.main:app --frontend frontend
+```
+
+If the frontend is the current directory, omit `--frontend`. The Python CLI
+owns application import and Pydantic serialization/validation schema export. It passes a
+temporary manifest to the frontend's locally installed `@fluxfast/next` CLI,
+which detects the root or `src/` layout and compiles the manifest, resource
+types, general application contracts, native runtime validators, route builders,
+mutation helpers, and page registry before writing any of them. Page handlers,
+resource loaders, dependencies, and mutation handlers are not executed during export.
+
+Use the read-only form in CI to detect changes to either backend contracts or
+frontend pages:
+
+```bash
+fluxfast types backend.main:app --frontend frontend --check
+```
+
+A stale or missing manifest or generated file returns a nonzero status and is
+left untouched. The helper selects npm, pnpm, Yarn, or Bun from the frontend
+lockfile or `packageManager` field and runs its local FluxFast executable.
+
+The detected `.fluxfast` directory contains:
+
+| Generated file | Frontend API |
+| --- | --- |
+| `schema.generated.json` | Validated `fluxfast-schema/2` (and backward-compatible `fluxfast-schema/1`) manifest and fingerprint. |
+| `types.generated.ts` | Resource models, general application contracts, reusable mutation bodies, `resourceKeys`, and hook inference. |
+| `validators.generated.ts` | Native framework-neutral client validators powered by `@fluxfast/core` with zero dependencies. |
+| `routes.generated.ts` | Typed FastAPI page URL builders. |
+| `mutations.generated.ts` | Typed JSON helpers consuming reusable body contracts. |
+| `pages.generated.ts` | Allowlisted lazy page-component registry. |
+
+Do not edit these files manually. The complete declaration, generation,
+frontend usage, compatibility, and drift workflow is documented in the
+[generated artifact contract](/FluxFast-Docs/generated-artifacts/), [typed contracts and
+code generation](/FluxFast-Docs/type-safety/), [General Application Contracts](/FluxFast-Docs/contracts/),
+[Native Client Validation](/FluxFast-Docs/validation/), and the [Migration Guide](/FluxFast-Docs/migration/).
+
+## Development
+
+From the directory that can import the FastAPI application, run:
+
+```bash
+fluxfast dev backend.main:app --frontend frontend
+```
+
+If the frontend is the current directory, omit `--frontend`:
+
+```bash
+fluxfast dev backend.main:app
+```
+
+The supervisor selects an available FastAPI loopback port, injects that address
+only into the Next server process, and starts the frontend on port 3000. The
+browser uses relative URLs on the Next origin; the `X-FluxFast: 1` rewrite sends
+only protocol visits and mutations to FastAPI. Normal document requests remain
+owned by the Next catch-all shell, so local development needs one command, one
+public port, and no CORS configuration.
+
+The supervisor selects npm, pnpm, Yarn, or Bun from the frontend lockfile, then
+falls back to the `packageManager` field and finally npm. Override the public
+port with `--frontend-port` when needed.
+
+## Adapter configuration
+
+The generated Next config wraps the existing supported config shape:
+
+```js
+import { withFluxFast } from "@fluxfast/next/next-config";
+
+export default withFluxFast({
+  reactStrictMode: true,
+});
+```
+
+`withFluxFast()` generates the allowlisted lazy registry and installs the
+same-origin protocol rewrite. The generated registry exports `fluxPages` and a
+client-side `FluxApplication`. Tests, stories, and underscore-prefixed modules
+are ignored. Page paths may use ASCII letters, digits, `_`, `.`, `@`,
+parentheses, brackets, and hyphens, with `/` between directories and a `.tsx`
+or `.jsx` extension. Generation rejects other characters before emitting import
+paths into source.
+
+The generated FluxFast config connects the registry to the runtime:
+
+```ts
+import { defineFluxConfig } from "@fluxfast/next";
+import { FluxApplication } from "@/.fluxfast/pages.generated";
+
+export const fluxConfig = defineFluxConfig({
+  application: FluxApplication,
+});
+```
+
+The catch-all obtains the initial FastAPI envelope on the server:
+
+```tsx
+import { createFluxNextPage } from "@fluxfast/next/server";
+import { fluxConfig } from "@/fluxfast.config";
+
+export const dynamic = "force-dynamic";
+
+export default createFluxNextPage(fluxConfig);
+```
+
+The helper reconstructs the path and repeated search parameters, forwards only
+cookie, authorization, accept-language, user-agent, and explicitly configured
+safe headers, and never forwards hop-by-hop headers.
+Initial SSR fetches follow at most 20 HTTP redirects within the configured
+backend origin, preserving FastAPI canonical-path redirects. Redirects to another
+origin, credential-bearing URLs, and malformed targets fail without forwarding
+another request. This server-side HTTP boundary does not change the browser's
+explicit FluxFast mutation redirect and external-navigation envelopes.
+
+`backendUrl` is server-visible and normally comes from the development
+supervisor. `clientUrl` is the browser transport base; omit it for the default
+same-origin setup. Set either value explicitly only for a deliberate deployment
+where the Next server or browser must reach a separate backend address. A
+cross-origin browser deployment requires explicit FastAPI CORS configuration.
+
+`Link` renders a normal anchor and intercepts only unmodified left clicks to
+same-origin destinations with `_self` targeting and no download attribute.
+`usePage`, `useResource`, `useResourceState`, `useDeferredResource`, `useForm`,
+`useRouter`, and `useFlux` consume the stable client runtime. Use
+`useDeferredResource` when a key may be pending or failed; its lifecycle and
+targeted retry behavior are documented in the [deferred resources
+guide](/FluxFast-Docs/deferred-resources/). When `types.generated.ts` is present, the three
+resource hooks infer known literal keys through `FluxResourceMap`; dynamic keys
+remain `unknown`, and explicit generic overrides remain supported.
+
+## Troubleshooting
+
+- Run `npx fluxfast doctor` first; it detects unsupported package versions,
+  route conflicts, missing config, and a stale registry.
+- If `app/page.*` remains after initialization, it shadows the FluxFast `/`
+  route. Move the component to `flux-pages/home/index.*`, make it client-safe,
+  and remove the App Router page.
+- If a new page is missing from the registry, run `npx fluxfast generate` and
+  commit the generated file only when the consuming project tracks generated
+  output.
+- If `next.config` uses an unknown wrapper or export expression, FluxFast leaves
+  it unchanged. Follow the wrapper-order guidance in the
+  [manual setup guide](/FluxFast-Docs/nextjs-manual-setup/).
+- If the generated catch-all is invalid, inspect its diff and run
+  `npx fluxfast init --dry-run --force`, then `npx fluxfast init --force` to
+  replace it. The flag changes only how an existing catch-all is handled; the
+  rest of the normal initialization plan still applies.
+- If the initial envelope returns `404 Not Found`, confirm that FastAPI defines
+  the requested path and that its `Page.component` exactly matches a registered
+  `flux-pages` component such as `home/index`.
+- If an older `@fluxfast/next` version reports `Failed to execute 'measure' on
+  'Performance'` with a negative timestamp while rendering a redirect or
+  not-found page in development, upgrade the adapter. FluxFast avoids the
+  rejected server-component path affected by the confirmed
+  [Next.js development issue](https://github.com/vercel/next.js/issues/86060).
+  Do not patch the browser Performance API.
+- If the browser is calling a second port, remove an unnecessary `clientUrl`
+  and start the application through `fluxfast dev`.
+
+For custom monorepos, unsupported Next config syntax, or framework-level
+debugging, continue with the [manual setup guide](/FluxFast-Docs/nextjs-manual-setup/).

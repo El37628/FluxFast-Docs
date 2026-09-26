@@ -1,0 +1,166 @@
+---
+title: Introduction
+description: Learn the FluxFast mental model, responsibility boundaries, and the situations where it fits best.
+---
+
+import { Aside, Card, CardGrid, LinkCard, Steps, Tabs, TabItem } from '@astrojs/starlight/components';
+
+FluxFast helps you build a React interface without turning your frontend into a second application
+server. FastAPI remains the place where URLs, permissions, validation, and data ownership live.
+Next.js is the rendering shell. FluxFast connects the two with a versioned envelope and reactive
+resource stores.
+
+If you have used Inertia, the first request will feel familiar: the server chooses a component and
+sends its data. FluxFast extends that model by making data resources independently versioned,
+cacheable, deferrable, and live.
+
+## The mental model
+
+Think in three layers:
+
+<Steps>
+1. **A page selects the interface.** A FastAPI route chooses an allowlisted frontend component. The
+   URL and access checks stay in Python.
+2. **Resources carry application data.** A page declares which resources it needs. Each resource has
+   its own contract, version, loader, cache policy, and optional live behavior.
+3. **The adapter renders stores.** Next.js resolves the selected component from a generated registry.
+   React hooks read resource stores and re-render when those stores change.
+</Steps>
+
+This separation matters because pages and data do not always share the same lifetime. A navigation
+can reuse an unchanged viewer resource, defer an expensive report, and subscribe to a live counter
+without replacing the entire page payload.
+
+## What each layer owns
+
+| Concern | Owner | Why |
+| --- | --- | --- |
+| URL routing and route parameters | FastAPI | One authoritative routing table |
+| Authentication and authorization | FastAPI | Decisions occur before protected data is serialized |
+| Input and output contracts | Pydantic | Python definitions generate the frontend contract |
+| Resource lifecycle and invalidation | FluxFast runtime | Versions and scopes remain consistent across transports |
+| Component selection | FastAPI + generated registry | The server chooses only from explicitly registered modules |
+| Rendering and interaction | React / Next.js | The browser owns presentation and local interaction state |
+| Cross-worker coordination | Redis, when configured | Workers share cache data, tags, and live invalidations |
+
+<Aside type="caution" title="The browser is not an authorization boundary">
+  A hidden button is only presentation logic. Loaders and mutations must enforce authorization in
+  FastAPI because every transport request can be made without your React component.
+</Aside>
+
+## A page envelope, not an HTML template
+
+At a high level, a FluxFast response identifies the component and the current state of each
+resource:
+
+```json title="Conceptual page envelope"
+{
+  "protocol": "fluxfast/1",
+  "page": {
+    "component": "Dashboard",
+    "url": "/dashboard"
+  },
+  "resources": {
+    "viewer": {
+      "version": 3,
+      "status": "ready",
+      "data": { "name": "Ada", "plan": "pro" }
+    }
+  }
+}
+```
+
+You normally do not construct this object yourself. `flux.render(...)` builds it, the adapter checks
+the protocol, and the browser initializes or updates the resource stores.
+
+## Pages and resources are different
+
+<Tabs>
+  <TabItem label="Page">
+    A page maps a FastAPI route to a frontend component. It answers: **which interface should render
+    for this URL?**
+
+    ```python
+    @flux.page('/projects/{project_id}', component='ProjectPage')
+    async def project_page(request, project_id: int):
+        return flux.render(resources=[viewer, project])
+    ```
+  </TabItem>
+  <TabItem label="Resource">
+    A resource is typed application data with an independent lifecycle. It answers: **what data does
+    the interface need, and how may it be reused or updated?**
+
+    ```python
+    project = flux.define_resource(
+        'project',
+        Project,
+        loader=load_project,
+        scope='tenant',
+        cache_ttl=30,
+    )
+    ```
+  </TabItem>
+</Tabs>
+
+## Choose a resource lifecycle deliberately
+
+<CardGrid>
+  <Card title="Blocking" icon="check-circle">
+    Load before rendering when the data defines the page's first meaningful state. Errors become
+    route-level failures.
+  </Card>
+  <Card title="Deferred" icon="clock">
+    Render the shell first when the data is secondary or slow. The component handles loading, ready,
+    and error states explicitly.
+  </Card>
+  <Card title="Cached" icon="database">
+    Reuse loader results when a clear TTL and security scope exist. Never cache user or tenant data
+    without a matching scope key.
+  </Card>
+  <Card title="Live" icon="refresh">
+    Subscribe when canonical server changes must reach connected clients. Live data still requires an
+    explicit authorization and publication scope.
+  </Card>
+</CardGrid>
+
+## One public origin
+
+In development, `fluxfast dev` starts FastAPI and its managed Next.js child process. In production,
+`fluxfast build` prepares the frontend and `fluxfast start` supervises both runtimes. The browser sees
+one origin:
+
+```text
+Browser
+   │  http://localhost:8000 (development)
+   │  https://app.example.com (production)
+   ▼
+FastAPI + FluxFast transport
+   │  private loopback traffic
+   ▼
+Managed Next.js process
+```
+
+That topology removes browser-side backend URL configuration and avoids CORS between the shell and
+the transport endpoints. It also gives health checks and shutdown a single lifecycle owner.
+
+## When FluxFast is a good fit
+
+Use FluxFast when:
+
+- your domain logic and security already belong in FastAPI;
+- you want React and the Next.js App Router for the interface;
+- pages share data that should survive navigation;
+- typed Python contracts should drive frontend types and validation;
+- some resources benefit from progressive or live delivery;
+- you want a single-origin service rather than independently deployed browser and API origins.
+
+FluxFast may not be the best boundary when the frontend must be independently deployed and usable
+against many unrelated APIs, when offline-first local ownership is central, or when the application
+does not use FastAPI and Next.js.
+
+## Continue
+
+<CardGrid>
+  <LinkCard title="Build the tutorial" href="/FluxFast-Docs/getting-started/" description="Create a complete page, shared resource, mutation, generated contract, and production build." />
+  <LinkCard title="Inspect the architecture" href="/FluxFast-Docs/architecture/" description="Follow blocking, deferred, navigation, live, and production flows in detail." />
+</CardGrid>

@@ -1,0 +1,34 @@
+{
+  "name": "fluxfast-docs",
+  "type": "module",
+  "version": "1.0.0",
+  "private": true,
+  "description": "The official documentation website for FluxFast.",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "dev": "astro dev",
+    "start": "astro dev",
+    "build": "astro build",
+    "check": "astro check",
+    "check:links": "node scripts/check-links.mjs",
+    "sync:source": "node scripts/sync-source-docs.mjs",
+    "preview": "astro preview",
+    "astro": "astro"
+  },
+  "dependencies": {
+    "@astrojs/starlight": "^0.42.4",
+    "astro": "^7.2.10",
+    "sharp": "^0.35.3"
+  },
+  "devDependencies": {
+    "@astrojs/check": "^0.9.10",
+    "prettier": "^3.9.0",
+    "prettier-plugin-astro": "^1.1.0",
+    "typescript": "^5.9.3"
+  },
+  "allowScripts": {
+    "esbuild": true
+  }
+}

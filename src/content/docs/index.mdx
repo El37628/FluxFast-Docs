@@ -1,0 +1,163 @@
+---
+title: FluxFast documentation
+description: Build stable server-driven applications with FastAPI ownership and a reactive Next.js interface.
+template: splash
+hero:
+  title: Your FastAPI app, rendered at interface speed.
+  tagline: FluxFast keeps routing, authorization, validation, and data loading on the backend while Next.js renders a typed, reactive frontend from one public origin.
+  actions:
+    - text: Build your first page
+      link: ./getting-started/
+      icon: right-arrow
+      variant: primary
+    - text: Understand the architecture
+      link: ./architecture/
+      icon: open-book
+      variant: minimal
+---
+
+import { Aside, Card, CardGrid, LinkCard } from '@astrojs/starlight/components';
+
+<p class="eyebrow">Stable v1.0 · FastAPI + Next.js</p>
+
+## One owner for application behavior
+
+FluxFast is a server-driven application runtime, not a second API framework. Your FastAPI
+application remains the authority for every route and every permission decision. The browser
+receives a page envelope containing an allowlisted component name and independently managed
+resources, then renders it through the Next.js adapter.
+
+<div class="architecture-flow" role="list" aria-label="FluxFast request flow">
+  <div class="architecture-node" role="listitem">
+    <strong>1. FastAPI owns</strong>
+    <p>Routes, authentication, authorization, Pydantic contracts, loaders, mutations, and cache scope.</p>
+  </div>
+  <div class="architecture-node" role="listitem">
+    <strong>2. FluxFast coordinates</strong>
+    <p>Page envelopes, resource versions, deferred loading, invalidation, live events, and generated contracts.</p>
+  </div>
+  <div class="architecture-node" role="listitem">
+    <strong>3. Next.js renders</strong>
+    <p>Allowlisted React modules consume typed stores and update without duplicating backend policy.</p>
+  </div>
+</div>
+
+<CardGrid>
+  <Card title="Independent resources" icon="puzzle">
+    Reuse the same resource across pages. Cache, refresh, defer, and synchronize it independently
+    from the surrounding page.
+  </Card>
+  <Card title="Generated contracts" icon="document">
+    Generate TypeScript resource, route, mutation, and validator types directly from Python
+    declarations—and fail CI when generated files drift.
+  </Card>
+  <Card title="Single-origin runtime" icon="seti:config">
+    Run one production command. The managed Next.js process stays private while FastAPI exposes the
+    application origin, health endpoints, and shutdown lifecycle.
+  </Card>
+  <Card title="Scoped synchronization" icon="refresh">
+    Push canonical changes to connected clients with explicit public, user, or tenant scope and an
+    optional Redis coordination layer for multiple workers.
+  </Card>
+</CardGrid>
+
+## See the model in code
+
+Define the route and resource where the application policy belongs:
+
+```python title="backend/main.py"
+from fastapi import FastAPI
+from fluxfast import FluxFast
+from pydantic import BaseModel
+
+app = FastAPI()
+flux = FluxFast(app)
+
+class Viewer(BaseModel):
+    name: str
+    plan: str
+
+viewer = flux.define_resource(
+    "viewer",
+    Viewer,
+    loader=lambda _request: Viewer(name="Ada", plan="pro"),
+    scope="user",
+)
+
+@flux.page("/dashboard", component="Dashboard")
+async def dashboard(_request):
+    return flux.render(resources=[viewer])
+```
+
+Generate the contract, then consume the store in a registered React component:
+
+```tsx title="frontend/src/pages/Dashboard.tsx"
+'use client';
+
+import { useResource } from '@fluxfast/next/client';
+import type { ResourceTypes } from '../.fluxfast/types.generated';
+
+export default function Dashboard() {
+  const viewer = useResource<ResourceTypes['viewer']>('viewer');
+
+  return (
+    <main>
+      <p>Signed in as {viewer.data.name}</p>
+      <strong>{viewer.data.plan} plan</strong>
+    </main>
+  );
+}
+```
+
+```bash
+fluxfast types backend.main:app --frontend frontend
+fluxfast dev backend.main:app --frontend frontend
+```
+
+<Aside type="tip" title="No frontend backend URL is required">
+  During development and production, the browser talks to the Next.js origin. The managed adapter
+  forwards FluxFast transport requests internally, so the application does not require a second
+  public port or a browser CORS policy.
+</Aside>
+
+## Pick the right loading behavior
+
+| Need | Use | What the user sees |
+| --- | --- | --- |
+| Data required for the first meaningful render | Blocking resource | Complete data in the initial page envelope |
+| Expensive or secondary data | Deferred resource | Immediate page shell, then an explicit loading/error/ready state |
+| Data that must update across tabs or users | Live resource | Canonical updates over a scoped reconnecting event stream |
+| Reused data with a bounded lifetime | Cached resource | Shared load result within an explicit public, user, or tenant boundary |
+
+<div class="release-band">
+  <div>
+    <p class="eyebrow">Current stable release</p>
+    <p><strong>FluxFast 1.0.0</strong> freezes the public Python, TypeScript, wire, schema, generated-artifact, and production runtime contracts.</p>
+  </div>
+  <a href="./releases/v1-0-0/">Read the release notes →</a>
+</div>
+
+## Follow a path
+
+<CardGrid>
+  <LinkCard
+    title="I am starting a new application"
+    description="Install FluxFast, create a page and mutation, generate types, and run the one-command development loop."
+    href="./getting-started/"
+  />
+  <LinkCard
+    title="I need reactive data"
+    description="Compare blocking, deferred, cached, and live resource behavior before choosing a lifecycle."
+    href="./deferred-resources/"
+  />
+  <LinkCard
+    title="I am preparing production"
+    description="Build and validate the frontend, configure workers and Redis, then verify health and shutdown."
+    href="./production/"
+  />
+  <LinkCard
+    title="I need the exact contract"
+    description="Use the public API inventories, protocol specification, and stability guarantees as normative references."
+    href="./stability/"
+  />
+</CardGrid>
