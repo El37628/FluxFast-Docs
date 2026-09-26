@@ -6,6 +6,33 @@ import starlight from '@astrojs/starlight';
 export default defineConfig({
 	site: 'https://el37628.github.io',
 	base: '/FluxFast-Docs',
+	vite: {
+		build: {
+			rolldownOptions: {
+				output: {
+					// GitHub Pages caches HTML longer than it retains assets from the
+					// previous deployment. Stable names keep cached pages usable while
+					// the new deployment propagates through the CDN.
+					assetFileNames: '_astro/[name][extname]',
+					chunkFileNames: '_astro/[name].js',
+					entryFileNames: '_astro/[name].js',
+				},
+			},
+		},
+		environments: {
+			client: {
+				build: {
+					rolldownOptions: {
+						output: {
+							assetFileNames: '_astro/[name][extname]',
+							chunkFileNames: '_astro/[name].js',
+							entryFileNames: '_astro/[name].js',
+						},
+					},
+				},
+			},
+		},
+	},
 	integrations: [
 		starlight({
 			title: 'FluxFast',

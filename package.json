@@ -10,7 +10,7 @@
   "scripts": {
     "dev": "astro dev",
     "start": "astro dev",
-    "build": "astro build",
+    "build": "astro build && node scripts/stabilize-assets.mjs",
     "check": "astro check",
     "check:links": "node scripts/check-links.mjs",
     "sync:source": "node scripts/sync-source-docs.mjs",
