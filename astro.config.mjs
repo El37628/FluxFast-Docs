@@ -97,6 +97,8 @@ export default defineConfig({
 				{
 					label: 'API reference',
 					items: [
+						{ label: 'Stable APIs', slug: 'stable-apis' },
+						{ label: 'Advanced Stable APIs', slug: 'advanced-stable-apis' },
 						{ label: 'Python API', slug: 'python-api' },
 						{ label: '@fluxfast/core', slug: 'core-api' },
 						{ label: '@fluxfast/next', slug: 'next-api' },

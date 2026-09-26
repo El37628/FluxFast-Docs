@@ -15,6 +15,11 @@ import { FluxRouter, createValidator } from "@fluxfast/core";
 Deep imports into `dist` or source files are internal. The package's ESM and
 CommonJS entry points expose the same named API.
 
+Application developers should begin with the [Stable APIs guide](/FluxFast-Docs/stable-apis/).
+Adapter, transport, live-runtime, protocol, and validation-tooling authors
+should also read [Advanced Stable APIs](/FluxFast-Docs/advanced-stable-apis/). This page is
+the authoritative symbol inventory for both classifications.
+
 ## Common API inputs and outputs
 
 Application components normally reach this runtime through `@fluxfast/next`.

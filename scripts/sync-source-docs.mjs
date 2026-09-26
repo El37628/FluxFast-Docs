@@ -8,6 +8,7 @@ const sourceDocs = path.join(sourceRoot, 'docs');
 const outputDocs = path.join(projectRoot, 'src/content/docs');
 
 const descriptions = {
+  'advanced-stable-apis.md': 'Build supported cache, live, transport, protocol, handler, and tooling integrations with lower-level FluxFast APIs.',
   'architecture.md': 'Understand how FastAPI, the resource graph, browser stores, and the Next.js shell divide responsibility.',
   'benchmarking.md': 'Reproduce FluxFast performance measurements and interpret their correctness gates.',
   'caching.md': 'Configure server and browser caching without leaking data across users or tenants.',
@@ -30,6 +31,7 @@ const descriptions = {
   'protocol.md': 'Normative wire contract shared by the Python backend and TypeScript clients.',
   'python-api.md': 'Stable Python API reference for pages, resources, mutations, contracts, and runtime helpers.',
   'releasing.md': 'Maintainer workflow for validating and publishing synchronized FluxFast packages.',
+  'stable-apis.md': 'Choose and use the supported FluxFast APIs intended for ordinary application development.',
   'stability.md': 'The compatibility promises and public surfaces covered by FluxFast 1.x.',
   'type-safety.md': 'Generate typed resources, routes, mutations, and validators from backend declarations.',
   'upgrade-v1.md': 'A focused checklist for upgrading from v0.9.x to v1.0.0.',
