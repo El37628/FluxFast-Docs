@@ -13,11 +13,12 @@ export default defineConfig({
 			description:
 				'Stable server-driven applications with FastAPI ownership and a reactive Next.js interface.',
 			logo: {
-				src: './src/assets/fluxfast-logo.svg',
+				light: './src/assets/fluxfast-logo-light.png',
+				dark: './src/assets/fluxfast-logo-dark.png',
 				alt: 'FluxFast',
 				replacesTitle: true,
 			},
-			favicon: '/favicon.svg',
+			favicon: '/fluxfast-icon.png',
 			customCss: ['./src/styles/custom.css'],
 			social: [
 				{ icon: 'github', label: 'FluxFast on GitHub', href: 'https://github.com/El37628/FluxFast' },
