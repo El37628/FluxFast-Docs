@@ -38,6 +38,10 @@ it does not mean experimental. Examples include
 `LiveBroker`, `ResourceCacheBackend`, transport interfaces, validation-plan
 APIs, and protocol types.
 
+For practical selection guidance and working examples, see
+[Stable APIs for application developers](/FluxFast-Docs/stable-apis/) and
+[Advanced Stable APIs for integration authors](/FluxFast-Docs/advanced-stable-apis/).
+
 An implementation detail is internal only when it is not exposed through an
 official package export and no public contract documents it. Undocumented deep
 imports, underscore-prefixed Python implementation details, package `src` and

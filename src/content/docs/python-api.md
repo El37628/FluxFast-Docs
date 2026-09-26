@@ -17,6 +17,11 @@ because the package is imported or an application starts. Names absent from
 undocumented deep-module imports, are internal unless another public contract
 explicitly says otherwise.
 
+For task-based guidance, start with [Stable APIs](/FluxFast-Docs/stable-apis/). If you are
+building cache, live-resource, protocol, or framework infrastructure, use the
+[Advanced Stable APIs guide](/FluxFast-Docs/advanced-stable-apis/). This page remains the
+authoritative symbol-by-symbol Python inventory.
+
 ## Common API inputs and outputs
 
 The examples below show the public Python objects together with the wire values
