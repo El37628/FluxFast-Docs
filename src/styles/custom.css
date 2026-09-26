@@ -103,6 +103,10 @@ header.header {
   border-radius: 0.3rem;
 }
 
+.sl-markdown-content :is(th, td) code:not(:where(.expressive-code *)) {
+  white-space: nowrap;
+}
+
 .sl-markdown-content .card {
   border-color: color-mix(in srgb, var(--sl-color-accent) 22%, var(--sl-color-gray-5));
   border-radius: 0.75rem;
@@ -184,9 +188,11 @@ header.header {
 @media (max-width: 50rem) {
   .sl-markdown-content table {
     display: block;
+    width: max-content;
     max-width: 100%;
     overflow-x: auto;
     overscroll-behavior-inline: contain;
+    scrollbar-gutter: stable;
   }
 
   .sl-markdown-content th,
