@@ -73,8 +73,10 @@ header.header {
 }
 
 .site-title img {
-  width: 11.5rem;
-  height: 2.5rem;
+  width: 13rem;
+  height: 3.5rem;
+  object-fit: cover;
+  object-position: center 49%;
 }
 
 .hero {
