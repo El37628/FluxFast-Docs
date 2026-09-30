@@ -1,0 +1,54 @@
+---
+title: Reference applications
+description: Compare four complete FluxFast e-commerce applications organized with service-repository, modular feature, clean architecture, and MVC patterns.
+---
+
+import { Aside, CardGrid, LinkCard } from '@astrojs/starlight/components';
+
+These reference applications implement the same e-commerce domain with different application
+structures. Use them to compare where FluxFast pages, resources, mutations, and contracts fit into
+an architecture your team already understands.
+
+<Aside type="note" title="A shared, full-stack baseline">
+  Every repository combines FluxFast with FastAPI, Next.js 16, MySQL, and Alembic. Each one includes
+  typed resource contracts, page and mutation routes, database migrations, tests, and containerized
+  local setup.
+</Aside>
+
+## Choose an architecture
+
+<CardGrid>
+  <LinkCard
+    title="Service–Repository"
+    description="Separate persistence, business workflows, and API delivery into horizontal layers with dependency-injected repositories and services."
+    href="https://github.com/El37628/fluxfast-service-repository-ecommerce"
+  />
+  <LinkCard
+    title="Modular Features"
+    description="Organize the application as vertical business slices, with each feature owning its models, schemas, services, and FluxRouter."
+    href="https://github.com/El37628/fluxfast-modular-features-ecommerce"
+  />
+  <LinkCard
+    title="Clean Architecture"
+    description="Keep domain and application rules framework-independent, then connect FluxFast through presentation adapters and repository ports."
+    href="https://github.com/El37628/fluxfast-clean-architecture-ecommerce"
+  />
+  <LinkCard
+    title="Model–View–Controller"
+    description="Map SQLAlchemy models, FluxFast page builders, controllers, and routes onto a familiar MVC application structure."
+    href="https://github.com/El37628/fluxfast-mvc-ecommerce"
+  />
+</CardGrid>
+
+## Compare the boundaries
+
+| Repository | Primary boundary | Where FluxFast lives |
+| --- | --- | --- |
+| [`fluxfast-service-repository-ecommerce`](https://github.com/El37628/fluxfast-service-repository-ecommerce) | Repositories isolate database access; services own business workflows | The API delivery layer binds services to pages and mutations |
+| [`fluxfast-modular-features-ecommerce`](https://github.com/El37628/fluxfast-modular-features-ecommerce) | Catalog, orders, and dashboard are self-contained feature slices | Each feature exposes its own `FluxRouter` |
+| [`fluxfast-clean-architecture-ecommerce`](https://github.com/El37628/fluxfast-clean-architecture-ecommerce) | Domain entities and application use cases point inward through ports | The presentation layer adapts use-case results into pages and mutations |
+| [`fluxfast-mvc-ecommerce`](https://github.com/El37628/fluxfast-mvc-ecommerce) | Models, views, controllers, and routes have explicit roles | Views build pages and resources; controllers return mutation results |
+
+The examples are alternatives, not a required FluxFast project structure. Start with the pattern
+that matches your application's complexity and your team's vocabulary, then preserve the same core
+boundary: FastAPI remains responsible for routing, authorization, validation, and data ownership.

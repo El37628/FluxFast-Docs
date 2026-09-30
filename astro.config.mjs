@@ -61,6 +61,7 @@ export default defineConfig({
 					label: 'Start here',
 					items: [
 						{ label: 'Quickstart', slug: 'getting-started' },
+						{ label: 'Reference applications', slug: 'examples' },
 						{ label: 'Architecture', slug: 'architecture' },
 					],
 				},
