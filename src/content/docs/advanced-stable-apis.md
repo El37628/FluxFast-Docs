@@ -163,6 +163,7 @@ import type { FluxTransport, PageEnvelope } from "@fluxfast/core";
 | `CAPABILITY_LIVE_RESOURCES` | `const capability = CAPABILITY_LIVE_RESOURCES;` | Names live-resource negotiation without duplicating its wire token. |
 | `CachedPage` | `const cached: CachedPage = pageCache.getValid("/rooms", resourceStore)!;` | Represents a cached page shell and the resource versions/manifest that keep it valid. |
 | `CompiledValidationPlan` | `const compiled: CompiledValidationPlan = compileValidationPlan(plan);` | Holds a checked plan, definitions, regexes, and normalized runtime limits. |
+| `DEVTOOLS_PROTOCOL_VERSION` | `const protocol = DEVTOOLS_PROTOCOL_VERSION;` | Names the independent bounded development-trace protocol understood by Core. |
 | `DEFAULT_LIVE_RECONNECT_INITIAL_DELAY_MS` | `const firstDelay = DEFAULT_LIVE_RECONNECT_INITIAL_DELAY_MS;` | Reads the first live reconnect backoff delay. |
 | `DEFAULT_LIVE_RECONNECT_JITTER` | `const jitter = DEFAULT_LIVE_RECONNECT_JITTER;` | Reads the default randomized reconnect-delay fraction. |
 | `DEFAULT_LIVE_RECONNECT_MAX_DELAY_MS` | `const maxDelay = DEFAULT_LIVE_RECONNECT_MAX_DELAY_MS;` | Reads the upper bound for live reconnect backoff. |
@@ -174,12 +175,19 @@ import type { FluxTransport, PageEnvelope } from "@fluxfast/core";
 | `ErrorEnvelope` | `const envelope: ErrorEnvelope = { protocol: "fluxfast/1", error: detail };` | Types a complete versioned protocol error response. |
 | `FLUX_CAPABILITIES` | `const advertised = FLUX_CAPABILITIES.join(",");` | Reads the complete supported capability list in canonical order. |
 | `FetchSseLiveTransport` | `const liveTransport = new FetchSseLiveTransport("https://app.example.com");` | Opens validated, abortable, credentialed SSE streams with standard FluxFast headers. |
-| `FetchTransport` | `const transport = new FetchTransport("https://app.example.com");` | Implements visits and mutations with Fetch, protocol validation, and structured errors. |
+| `FetchTransport` | `const transport = new FetchTransport("https://app.example.com");` | Implements visits and mutations with Fetch, protocol validation, structured errors, and optional subscriber-gated DevTools traces. |
 | `FluxCapability` | `const capability: FluxCapability = CAPABILITY_LIVE_RESOURCES;` | Restricts an adapter capability value to the supported token union. |
+| `FluxDiagnosticEvent` | `const event: FluxDiagnosticEvent = { id: "visit-1", timestamp: Date.now(), type: "navigation", data: {} };` | Describes one structured, correlation-ready development observation without storing application state. |
+| `FluxDiagnosticEventType` | `const type: FluxDiagnosticEventType = "resource-load";` | Restricts diagnostic events to the supported high-level runtime areas. |
+| `FluxDiagnosticListener` | `const listener: FluxDiagnosticListener = event => record(event.id);` | Types an isolated observer that cannot participate in runtime correctness. |
+| `FluxDiagnosticsHub` | `const stop = router.diagnostics.subscribe(listener);` | Distributes optional development diagnostics and supports one bounded SSR bootstrap batch without retaining the runtime timeline. |
+| `FluxServerDiagnosticTrace` | `const trace: FluxServerDiagnosticTrace = decodeServerDiagnosticTrace(header)!;` | Types value-free backend timing metadata after strict bounded validation. |
 | `FluxSseParser` | `const events = new FluxSseParser().push(chunk);` | Incrementally parses arbitrarily chunked SSE bytes into validated live events. |
-| `FluxTransport` | `const transport: FluxTransport = { visit, mutate };` | Defines the framework-neutral visit and mutation boundary consumed by `FluxRouter`. |
+| `FluxTransport` | `const transport: FluxTransport = { visit, mutate };` | Defines the framework-neutral visit and mutation boundary plus an optional diagnostics attachment consumed by `FluxRouter`. |
 | `HEADER_CAPABILITIES` | `headers[HEADER_CAPABILITIES] = serializeCapabilities();` | Writes the documented capability-negotiation request header. |
 | `HEADER_CLIENT_ID` | `headers[HEADER_CLIENT_ID] = clientId;` | Writes the router identity used to suppress an originating tab's echoed event. |
+| `HEADER_DEVTOOLS` | `headers[HEADER_DEVTOOLS] = "1";` | Requests development traces from an explicitly debug-enabled backend. |
+| `HEADER_DEVTOOLS_TRACE` | `const encoded = response.headers.get(HEADER_DEVTOOLS_TRACE);` | Names the response header containing one bounded base64url trace. |
 | `HEADER_LIVE` | `headers[HEADER_LIVE] = "1";` | Marks a request as a live SSE stream request. |
 | `HEADER_LIVE_KEYS` | `headers[HEADER_LIVE_KEYS] = serializeLiveKeys(["rooms"]);` | Writes the bounded authorized logical-key selection for a live stream. |
 | `HistoryManager` | `const history = new HistoryManager();` | Wraps browser push, replace, and popstate lifecycle behind a framework-neutral object. |
@@ -204,6 +212,7 @@ import type { FluxTransport, PageEnvelope } from "@fluxfast/core";
 | `LiveResyncReason` | `const reason: LiveResyncReason = "reconnect";` | Restricts resync diagnostics to supported reason strings. |
 | `LiveStatusSnapshot` | `const snapshot: LiveStatusSnapshot = manager.getSnapshot();` | Reads stable live status, connectivity, attempts, and last-event time. |
 | `LiveTransport` | `const transport: LiveTransport = createFetchSseLiveTransport();` | Defines the connection factory consumed by `LiveManager`. |
+| `MAX_DEVTOOLS_TRACE_HEADER_CHARS` | `if (encoded.length > MAX_DEVTOOLS_TRACE_HEADER_CHARS) reject();` | Exposes the common browser/SSR encoded-trace acceptance bound. |
 | `MAX_LIVE_CLIENT_ID_LENGTH` | `if (clientId.length > MAX_LIVE_CLIENT_ID_LENGTH) rejectClient();` | Applies the frozen printable client-identity bound. |
 | `MAX_LIVE_EVENT_BYTES` | `if (frame.byteLength > MAX_LIVE_EVENT_BYTES) rejectFrame();` | Applies the maximum SSE event-frame size. |
 | `MAX_LIVE_EVENT_KEYS` | `const selected = keys.slice(0, MAX_LIVE_EVENT_KEYS);` | Applies the maximum keys carried by one live event. |
@@ -211,7 +220,7 @@ import type { FluxTransport, PageEnvelope } from "@fluxfast/core";
 | `MAX_LIVE_RESOURCE_KEY_LENGTH` | `if (key.length > MAX_LIVE_RESOURCE_KEY_LENGTH) rejectKey();` | Applies the maximum logical resource-key length in live metadata. |
 | `MutationEnvelope` | `const envelope: MutationEnvelope = await transport.mutate(request);` | Types the complete versioned mutation response. |
 | `MutationPayload` | `const payload: MutationPayload = { invalidate: ["rooms"] };` | Types wire-level patches, invalidations, and redirects. |
-| `MutationTransportRequest` | `const request: MutationTransportRequest = { url: "/rooms/102", method: "PATCH", data };` | Configures one transport mutation including identity, headers, signal, and body. |
+| `MutationTransportRequest` | `const request: MutationTransportRequest = { url: "/rooms/102", method: "PATCH", data };` | Configures one transport mutation including identity, headers, signal, body, and an adapter-supplied diagnostic correlation ID. |
 | `PROTOCOL_MEDIA_TYPE` | `headers.accept = PROTOCOL_MEDIA_TYPE;` | Uses the official JSON media type for protocol requests. |
 | `PROTOCOL_VERSION` | `if (input.protocol !== PROTOCOL_VERSION) rejectVersion();` | Checks the independent browser protocol identifier. |
 | `PageCache` | `const pageCache = new PageCache(32);` | Caches bounded page shells while resource values remain in `ResourceStore`. |
@@ -223,6 +232,7 @@ import type { FluxTransport, PageEnvelope } from "@fluxfast/core";
 | `PrefetchManager` | `const prefetch = new PrefetchManager(10_000);` | Deduplicates in-flight prefetches and caches version-safe results with bounded eviction. |
 | `ProtocolVersion` | `const version: ProtocolVersion = "fluxfast/1";` | Restricts a protocol version value to the supported wire identifier. |
 | `ResourceErrorDetail` | `const detail: ResourceErrorDetail = { type: "timeout", message: "Unavailable" };` | Types sanitized partial resource failure data. |
+| `ResourceMetadataSnapshot` | `const resources: readonly ResourceMetadataSnapshot[] = router.resourceStore.getRecordsSnapshot();` | Reports keys, versions, timestamps, status, staleness, and subscriber presence without exposing resource values or errors. |
 | `ResourceWireRecord` | `const record: ResourceWireRecord<Room[]> = { version: "v1", value: rooms };` | Pairs a browser resource value with its opaque version. |
 | `VALIDATION_FORMATS` | `const formats = [...VALIDATION_FORMATS];` | Reads every supported native string-format validator. |
 | `VALIDATION_PATTERN_MAX_LENGTH` | `if (pattern.length > VALIDATION_PATTERN_MAX_LENGTH) rejectPattern();` | Applies the maximum accepted regex source length. |
@@ -256,6 +266,7 @@ import type { FluxTransport, PageEnvelope } from "@fluxfast/core";
 | `createFetchSseLiveTransport` | `const liveTransport = createFetchSseLiveTransport("https://app.example.com");` | Creates the standard Fetch/SSE live transport. |
 | `createFetchTransport` | `const transport = createFetchTransport("https://app.example.com");` | Creates the standard Fetch visit/mutation transport. |
 | `createLiveManager` | `const manager = createLiveManager({ transport: liveTransport });` | Creates a live lifecycle manager through the factory API. |
+| `decodeServerDiagnosticTrace` | `const trace = decodeServerDiagnosticTrace(encoded);` | Decodes, bounds, and strictly sanitizes an optional backend trace without throwing. |
 | `encodeKnownVersions` | `const header = encodeKnownVersions({ rooms: "rooms-v1" });` | Produces bounded base64url known-version metadata or omits an unsafe optimization. |
 | `evaluateValidationPlan` | `const result = evaluateValidationPlan<RoomInput>(compiled, input);` | Evaluates a previously compiled plan without recompiling it. |
 | `isSupportedValidationFormat` | `if (isSupportedValidationFormat(format)) validateValidationFormat(value, format);` | Narrows an arbitrary string to a supported format name. |
@@ -366,7 +377,7 @@ handlers directly only when your application deliberately owns the files or
 needs explicit server-only options.
 
 Transport route at
-`src/app/_fluxfast/transport/[[...path]]/route.ts`:
+`src/app/fluxfast/transport/[[...path]]/route.ts`:
 
 ```ts
 import { createFluxTransportHandler } from "@fluxfast/next/server";
@@ -385,7 +396,7 @@ export const PATCH = transport;
 export const DELETE = transport;
 ```
 
-Health route at `src/app/_fluxfast/[probe]/route.ts`:
+Health route at `src/app/fluxfast/[probe]/route.ts`:
 
 ```ts
 import { createFluxHealthHandler } from "@fluxfast/next/server";
@@ -401,7 +412,7 @@ export const GET = createFluxHealthHandler({
 Input:
 
 ```http
-GET /_fluxfast/readyz HTTP/1.1
+GET /fluxfast/readyz HTTP/1.1
 Host: app.example.com
 ```
 

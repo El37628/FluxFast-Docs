@@ -245,7 +245,7 @@ fluxfast start backend.main:app --frontend frontend
 ```
 
 Production health endpoints are available through that public origin at
-`/_fluxfast/healthz` and `/_fluxfast/readyz`. See [Production](/FluxFast-Docs/production/)
+`/fluxfast/healthz` and `/fluxfast/readyz`. See [Production](/FluxFast-Docs/production/)
 for workers, timeouts, proxies, process managers, and shutdown behavior.
 
 ## Where to go next

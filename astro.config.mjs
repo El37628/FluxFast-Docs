@@ -80,6 +80,7 @@ export default defineConfig({
 					label: 'Next.js integration',
 					items: [
 						{ label: 'Adapter and CLI', slug: 'nextjs-adapter' },
+						{ label: 'Development DevTools', slug: 'devtools' },
 						{ label: 'Manual setup', slug: 'nextjs-manual-setup' },
 						{ label: 'Generated artifacts', slug: 'generated-artifacts' },
 					],
@@ -113,6 +114,14 @@ export default defineConfig({
 						{ label: 'Versioning', slug: 'versioning' },
 						{ label: 'Migration guide', slug: 'migration' },
 						{ label: 'Upgrade to v1.0', slug: 'upgrade-v1' },
+					],
+				},
+				{
+					label: 'Release notes',
+					items: [
+						{ label: 'FluxFast 1.1.0', slug: 'releases/v1-1-0' },
+						{ label: 'FluxFast 1.0.1', slug: 'releases/v1-0-1' },
+						{ label: 'FluxFast 1.0.0', slug: 'releases/v1-0-0' },
 					],
 				},
 			],

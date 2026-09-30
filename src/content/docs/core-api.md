@@ -79,6 +79,62 @@ Output:
 Use `createFluxRuntime(options)` when a factory is more convenient; it returns
 the same `FluxRouter` public runtime.
 
+### Observe development diagnostics
+
+Every `FluxRouter` owns a `diagnostics` hub. It is inactive until a development
+tool subscribes, so normal application execution does not allocate diagnostic
+events. The hub distributes observations only; it does not retain a runtime
+timeline. Adapters may use `bootstrap()` for one bounded, one-shot batch
+captured before a browser listener could exist, such as the initial SSR trace.
+The first subscriber consumes that batch; long-term history remains the
+DevTools consumer's responsibility.
+
+```ts
+const stop = router.diagnostics.subscribe(event => {
+  console.log(event.type, event.correlationId, event.data);
+});
+
+await router.visit("/rooms?token=not-recorded");
+stop();
+```
+
+A navigation emits correlated `navigation`, `page-cache`, and
+`resource-update` observations. Runtime diagnostics contain bounded metadata
+such as route paths, resource keys, versions, counts, phases, and error types.
+They omit query strings, headers, request bodies, resource values, and raw
+error messages. DevTools consumers should still treat the channel as
+development-only and keep their own bounded history.
+
+The built-in `FetchTransport` is attached automatically. While at least one
+listener is active, it adds the development opt-in header, records bounded
+browser timing, validates the response trace, and emits correlated `transport`
+and `server-trace` observations. Removing the final listener restores the
+ordinary request path and suppresses the opt-in header. Custom transports remain
+compatible; they may implement the optional `attachDiagnostics(hub)` method to
+participate.
+
+For the current store state, use the value-free inspection snapshot:
+
+```ts
+console.log(router.resourceStore.getRecordsSnapshot());
+```
+
+```json
+[
+  {
+    "key": "rooms",
+    "version": "rooms-v1",
+    "updatedAt": 1760000000000,
+    "status": "ready",
+    "stale": false,
+    "hasSubscribers": true
+  }
+]
+```
+
+Pending or error-only resources use `null` for `version` and `updatedAt`. The
+snapshot never contains `value`, error messages, or error detail objects.
+
 ### Validate unknown input
 
 Generated validators use this API internally. A custom integration can also
@@ -174,8 +230,8 @@ advanced stable API supports lower-level transport, cache, live, protocol, or
 generated-validation integrations. Both classifications are supported
 compatibility-sensitive API; advanced does not mean experimental.
 
-The following inventory is machine-checked against the v0.9.0 declaration
-snapshot. Every exported name must appear exactly once.
+The frozen v0.9.0 inventory remains machine-checked while reviewed, additive
+1.x APIs are recorded explicitly. Every exported name must appear exactly once.
 
 ### Stable
 
@@ -241,6 +297,7 @@ CAPABILITY_DEFERRED_RESOURCES
 CAPABILITY_LIVE_RESOURCES
 CachedPage
 CompiledValidationPlan
+DEVTOOLS_PROTOCOL_VERSION
 DEFAULT_LIVE_RECONNECT_INITIAL_DELAY_MS
 DEFAULT_LIVE_RECONNECT_JITTER
 DEFAULT_LIVE_RECONNECT_MAX_DELAY_MS
@@ -254,10 +311,17 @@ FLUX_CAPABILITIES
 FetchSseLiveTransport
 FetchTransport
 FluxCapability
+FluxDiagnosticEvent
+FluxDiagnosticEventType
+FluxDiagnosticListener
+FluxDiagnosticsHub
+FluxServerDiagnosticTrace
 FluxSseParser
 FluxTransport
 HEADER_CAPABILITIES
 HEADER_CLIENT_ID
+HEADER_DEVTOOLS
+HEADER_DEVTOOLS_TRACE
 HEADER_LIVE
 HEADER_LIVE_KEYS
 HistoryManager
@@ -282,6 +346,7 @@ LiveResyncEvent
 LiveResyncReason
 LiveStatusSnapshot
 LiveTransport
+MAX_DEVTOOLS_TRACE_HEADER_CHARS
 MAX_LIVE_CLIENT_ID_LENGTH
 MAX_LIVE_EVENT_BYTES
 MAX_LIVE_EVENT_KEYS
@@ -301,6 +366,7 @@ PrefetchEntry
 PrefetchManager
 ProtocolVersion
 ResourceErrorDetail
+ResourceMetadataSnapshot
 ResourceWireRecord
 VALIDATION_FORMATS
 VALIDATION_PATTERN_MAX_LENGTH
@@ -334,6 +400,7 @@ createClientId
 createFetchSseLiveTransport
 createFetchTransport
 createLiveManager
+decodeServerDiagnosticTrace
 encodeKnownVersions
 evaluateValidationPlan
 isSupportedValidationFormat
