@@ -18,7 +18,7 @@ hero:
 
 import { Aside, Card, CardGrid, LinkCard } from '@astrojs/starlight/components';
 
-<p class="eyebrow">Stable v1.0 · FastAPI + Next.js</p>
+<p class="eyebrow">Stable v1.1 · FastAPI + Next.js</p>
 
 ## One owner for application behavior
 
@@ -58,6 +58,10 @@ resources, then renders it through the Next.js adapter.
   <Card title="Scoped synchronization" icon="refresh">
     Push canonical changes to connected clients with explicit public, user, or tenant scope and an
     optional Redis coordination layer for multiple workers.
+  </Card>
+  <Card title="Development diagnostics" icon="magnifier">
+    Inspect resources, cache decisions, mutations, live recovery, and correlated browser/server
+    activity with the optional development-only Debugbar.
   </Card>
 </CardGrid>
 
@@ -132,9 +136,9 @@ fluxfast dev backend.main:app --frontend frontend
 <div class="release-band">
   <div>
     <p class="eyebrow">Current stable release</p>
-    <p><strong>FluxFast 1.0.0</strong> freezes the public Python, TypeScript, wire, schema, generated-artifact, and production runtime contracts.</p>
+    <p><strong>FluxFast 1.1.0</strong> adds optional, bounded development DevTools while preserving the stable v1 protocol and production runtime behavior.</p>
   </div>
-  <a href="./releases/v1-0-0/">Read the release notes →</a>
+  <a href="./releases/v1-1-0/">Read the release notes →</a>
 </div>
 
 ## Follow a path
@@ -159,5 +163,10 @@ fluxfast dev backend.main:app --frontend frontend
     title="I need the exact contract"
     description="Use the public API inventories, protocol specification, and stability guarantees as normative references."
     href="./stability/"
+  />
+  <LinkCard
+    title="I need to debug synchronization"
+    description="Install the development-only Debugbar and correlate navigation, resource, cache, mutation, live, and protocol activity."
+    href="./devtools/"
   />
 </CardGrid>

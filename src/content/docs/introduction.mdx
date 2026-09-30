@@ -158,9 +158,37 @@ FluxFast may not be the best boundary when the frontend must be independently de
 against many unrelated APIs, when offline-first local ownership is central, or when the application
 does not use FastAPI and Next.js.
 
+## Observe synchronization during development
+
+FluxFast 1.1 adds an optional Debugbar that reads the existing runtime without becoming part of
+application correctness. Install it as a development dependency and mount it inside the existing
+provider:
+
+```bash
+npm install --save-dev @fluxfast/devtools@1.1.0
+```
+
+```tsx
+import { FluxDevtools } from '@fluxfast/devtools';
+
+{process.env.NODE_ENV === 'development' && <FluxDevtools />}
+```
+
+Enable value-free server timing metadata only in your development FastAPI application:
+
+```python
+flux = FluxFast(app, debug=settings.environment == "development")
+```
+
+The inspector correlates navigation, resources, page and server caches, mutations, live recovery,
+and protocol negotiation. It never displays resource values, credentials, user or tenant IDs,
+request bodies, connection URLs, or patch values. See the [DevTools guide](/FluxFast-Docs/devtools/)
+for the full provider example, panel semantics, safety limits, and troubleshooting.
+
 ## Continue
 
 <CardGrid>
   <LinkCard title="Build the tutorial" href="/FluxFast-Docs/getting-started/" description="Create a complete page, shared resource, mutation, generated contract, and production build." />
   <LinkCard title="Inspect the architecture" href="/FluxFast-Docs/architecture/" description="Follow blocking, deferred, navigation, live, and production flows in detail." />
+  <LinkCard title="Use development DevTools" href="/FluxFast-Docs/devtools/" description="Inspect correlated runtime behavior without exposing application data or changing production semantics." />
 </CardGrid>

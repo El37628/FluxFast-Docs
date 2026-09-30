@@ -24,6 +24,8 @@ validates the installed packages and App Router, then prepares:
 src/flux-pages/
 src/fluxfast.config.ts
 src/app/(flux)/[[...flux]]/page.tsx
+src/app/fluxfast/[probe]/route.ts
+src/app/fluxfast/transport/[[...path]]/route.ts
 src/.fluxfast/pages.generated.ts
 src/.fluxfast/agent-knowledge.md
 AGENTS.md
@@ -35,6 +37,14 @@ For a root-layout or JavaScript project it uses the corresponding root paths and
 file extensions. Existing FluxFast configuration is preserved, and an existing
 `withFluxFast()` wrapper is not duplicated. Running `init` again is safe and
 regenerates the page registry.
+
+Next.js treats underscore-prefixed source folders as private. FluxFast therefore
+uses the plain `app/fluxfast` segment for its public same-origin health and
+transport handlers, while FastAPI keeps its private `/_fluxfast` endpoints.
+Projects initialized by FluxFast 1.0.0 with an encoded `%5Ffluxfast` source
+folder remain supported. Run `npx fluxfast init --dry-run --force` to preview
+the managed-route migration, then `npx fluxfast init --force` to move those
+generated files to `app/fluxfast`; unrelated custom files are preserved.
 
 The initializer also installs a detailed, version-aware agent guide beside the
 other generated artifacts and adds a small managed reference block to the
@@ -212,6 +222,13 @@ backend origin, preserving FastAPI canonical-path redirects. Redirects to anothe
 origin, credential-bearing URLs, and malformed targets fail without forwarding
 another request. This server-side HTTP boundary does not change the browser's
 explicit FluxFast mutation redirect and external-navigation envelopes.
+
+In development, the same initial request opts into the bounded
+`fluxfast-devtools/1` trace. The adapter validates the response metadata, strips
+the query string from its route label, and hands it to `FluxRoot` separately
+from `PageEnvelope`. The provider emits the SSR trace and a hydration marker to
+the diagnostic hub exactly once, including under React StrictMode. In
+production the request header and bootstrap metadata are both absent.
 
 `backendUrl` is server-visible and normally comes from the development
 supervisor. `clientUrl` is the browser transport base; omit it for the default

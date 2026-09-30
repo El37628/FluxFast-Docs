@@ -1,4 +1,4 @@
-import { mkdir, readFile, readdir, writeFile } from 'node:fs/promises';
+import { copyFile, mkdir, readFile, readdir, rm, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -17,6 +17,7 @@ const descriptions = {
   'core-api.md': 'Public API and stability classification for @fluxfast/core.',
   'deferred-resources.md': 'Stream non-blocking data after the first render with explicit loading and error states.',
   'developer-schema.md': 'Reference for the deterministic schema consumed by FluxFast code generation.',
+  'devtools.md': 'Install and use the development-only FluxFast Debugbar to inspect resources, cache behavior, mutations, live updates, and protocol traces safely.',
   'distributed-cache.md': 'Coordinate cached resources and invalidations across multiple FastAPI workers with Redis.',
   'generated-artifacts.md': 'Learn which generated files are stable, how names are derived, and how drift is detected.',
   'getting-started.md': 'Build a small typed FluxFast application from installation through production start.',
@@ -31,6 +32,9 @@ const descriptions = {
   'protocol.md': 'Normative wire contract shared by the Python backend and TypeScript clients.',
   'python-api.md': 'Stable Python API reference for pages, resources, mutations, contracts, and runtime helpers.',
   'releasing.md': 'Maintainer workflow for validating and publishing synchronized FluxFast packages.',
+  'releases/v1.0.0.md': 'Release notes for the first stable FluxFast release and its frozen compatibility contracts.',
+  'releases/v1.0.1.md': 'Release notes for the routable Next.js handlers and generated agent knowledge shipped in FluxFast 1.0.1.',
+  'releases/v1.1.0.md': 'Release notes for the optional development DevTools package introduced in FluxFast 1.1.0.',
   'stable-apis.md': 'Choose and use the supported FluxFast APIs intended for ordinary application development.',
   'stability.md': 'The compatibility promises and public surfaces covered by FluxFast 1.x.',
   'type-safety.md': 'Generate typed resources, routes, mutations, and validators from backend declarations.',
@@ -85,7 +89,44 @@ for (const relativePath of sourceFiles.sort()) {
   await writeFile(outputPath, frontmatter + body, 'utf8');
 }
 
-console.log(`Synchronized ${sourceFiles.length} documents from ${sourceDocs}`);
+const assetCount = await syncAssets(
+  path.join(sourceDocs, 'assets'),
+  path.join(outputDocs, 'assets'),
+);
+
+console.log(
+  `Synchronized ${sourceFiles.length} documents and ${assetCount} assets from ${sourceDocs}`,
+);
+
+async function syncAssets(sourceDirectory, outputDirectory) {
+  await rm(outputDirectory, { recursive: true, force: true });
+
+  let entries;
+  try {
+    entries = await readdir(sourceDirectory, { withFileTypes: true });
+  } catch (error) {
+    if (error.code === 'ENOENT') return 0;
+    throw error;
+  }
+
+  let copied = 0;
+  for (const entry of entries) {
+    const sourcePath = path.join(sourceDirectory, entry.name);
+    const outputPath = path.join(outputDirectory, entry.name);
+
+    if (entry.isDirectory()) {
+      copied += await syncAssets(sourcePath, outputPath);
+      continue;
+    }
+
+    if (!entry.isFile()) continue;
+    await mkdir(outputDirectory, { recursive: true });
+    await copyFile(sourcePath, outputPath);
+    copied += 1;
+  }
+
+  return copied;
+}
 
 function rewriteRepositoryLinks(markdown, sourcePath) {
   const withDocLinks = markdown.replace(/\]\(([^)\s#]+\.md)(#[^)\s]+)?\)/g, (_match, target, hash = '') => {

@@ -495,3 +495,72 @@ reload. No persistent replay or `Last-Event-ID` contract is defined for 0.4.
   client opens no stream and retains ordinary 0.3 behavior.
 - **Unknown additive fields or capabilities:** existing bounded parsing rules
   apply and the protocol identifier remains `fluxfast/1`.
+
+## Development diagnostic channel
+
+The optional DevTools trace is a separate development protocol. It does not add
+fields to `PageEnvelope`, `MutationEnvelope`, or any other `fluxfast/1` model.
+
+```http
+X-FluxFast-DevTools: 1
+X-FluxFast-DevTools-Trace: <base64url-json-without-padding>
+```
+
+The server returns a trace only when its explicit FluxFast debug mode is enabled
+and the request header is exactly `1`. A production server ignores a forged
+opt-in header. The decoded response uses `"protocol":"fluxfast-devtools/1"`
+and contains only bounded execution metadata: generated request ID, request
+type, durations, logical resource keys, scope types, TTLs, cache backend/result
+classifications, sent/known/deferred/live flags, and fixed error categories.
+
+The trace never contains resource values, scope fingerprints, user or tenant
+identifiers, cache keys or tags, URLs or query strings, cookies, authorization
+headers, request/mutation bodies, connection strings, exception messages, or
+tracebacks. Each encoded header is capped at 7 KiB—below common 8 KiB proxy
+limits. Resource entries are dropped from the end and `truncated` is set before
+the bound can be exceeded; if even fixed metadata cannot fit, the header is
+omitted and the application response proceeds unchanged.
+
+`fluxfast-devtools/1` is versioned independently. Package releases and future
+`fluxfast/1` revisions do not imply a diagnostic-protocol version change.
+
+For the initial document request, the Next server adapter opts in only outside
+production, validates the bounded response header with the same decoder as the
+browser transport, and passes a query-free path plus the safe trace through
+separate development bootstrap metadata. It never adds the trace to
+`PageEnvelope`. The browser diagnostic hub publishes that trace followed by a
+`hydrated` lifecycle marker. Invalid traces are ignored without affecting the
+page, and production requests neither send the opt-in header nor serialize the
+bootstrap metadata.
+
+Successful mutation traces use the same envelope identity with a counts-only
+summary:
+
+```json
+{
+  "protocol": "fluxfast-devtools/1",
+  "requestId": "ffdev_0123456789abcdef",
+  "type": "mutation",
+  "durationMs": 42.1,
+  "handlerMs": 35.2,
+  "invalidationMs": 4.8,
+  "serializeMs": 0.3,
+  "patches": [
+    {
+      "key": "rooms",
+      "operations": { "merge-object": 2 }
+    }
+  ],
+  "invalidated": ["roomStats", "availability"],
+  "invalidationCount": 2,
+  "liveSignals": 2,
+  "redirect": "none",
+  "truncated": false
+}
+```
+
+Patch values, patch identities, invalidation scopes, origin client IDs, and
+mutation input are deliberately absent. `liveSignals` counts scoped publication
+attempts; it does not expose broker topics and does not claim subscriber
+delivery. Oversized patch-resource and invalidation lists follow the same
+drop-and-mark-truncated behavior as page resource traces.

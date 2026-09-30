@@ -175,7 +175,7 @@ During supervised production startup, the resulting transport rewrite is:
   "has": [
     { "type": "header", "key": "x-fluxfast", "value": "1" }
   ],
-  "destination": "/_fluxfast/transport/:path*"
+  "destination": "/fluxfast/transport/:path*"
 }
 ```
 
@@ -204,6 +204,7 @@ DeferredResourceResult
 FetchInitialEnvelopeOptions
 FluxApplicationProps
 FluxCacheConfig
+FluxDevelopmentMetadata
 FluxFastGenerationCheckResult
 FluxFastGenerationOptions
 FluxFastGenerationResult
@@ -290,6 +291,7 @@ DEFAULT_FLUXFAST_BACKEND_URL
 DeferredResourceResult
 FluxApplicationProps
 FluxCacheConfig
+FluxDevelopmentMetadata
 FluxContext
 FluxContextValue
 FluxNextConfig
@@ -334,6 +336,7 @@ DEFAULT_FLUXFAST_BACKEND_URL
 DeferredResourceResult
 FluxApplicationProps
 FluxCacheConfig
+FluxDevelopmentMetadata
 FluxContext
 FluxContextValue
 FluxNextConfig
