@@ -1,0 +1,315 @@
+---
+title: Advanced API walkthrough
+description: Run published FluxFast APIs against a real FastAPI backend and understand transport results, store updates, validation errors, diagnostics, and cleanup.
+---
+
+import { Aside } from '@astrojs/starlight/components';
+
+An **Advanced Stable API** is a supported lower-level integration API, not an experimental API.
+Use it when building tooling, a transport integration, or a test that needs direct access to the
+runtime. For ordinary Next.js components, start with the [application API walkthrough](/FluxFast-Docs/api-walkthrough/)
+and its `useResource`, `useForm`, and `useRouter` examples instead.
+
+This lab uses the **published FluxFast 1.1.0** Python and Core packages. You will run an actual
+FastAPI application and a Node.js client, inspect their API results, and see the difference between
+receiving a mutation envelope and applying it to the runtime.
+
+<Aside type="caution" title="An API lab, not a deployment template">
+  The counter is public, process-local, and resets when Python restarts. Do not copy it as production
+  storage or authentication. This Node client deliberately calls a private, loopback backend to test
+  the protocol; it is not browser code. Normal applications keep the managed Next.js shell and its
+  single public origin. This lab does not add a frontend adapter or change that deployment contract.
+</Aside>
+
+## 1. Prepare an isolated lab
+
+Use a supported Python 3.11–3.14 installation and Node.js 22 or 24. Create a separate directory
+rather than editing the generated files of your application:
+
+```bash
+mkdir fluxfast-api-lab
+cd fluxfast-api-lab
+python -m venv .venv
+source .venv/bin/activate
+python -m pip install "fluxfast==1.1.0" uvicorn
+npm init -y
+npm install @fluxfast/core@1.1.0
+```
+
+On Windows, activate the environment with `.venv\Scripts\Activate.ps1` in PowerShell.
+The `.mjs` client below uses native JavaScript modules, so it does not require TypeScript or a
+`"type": "module"` change in `package.json`.
+
+## 2. Declare the authoritative backend
+
+Create `api.py` with this complete application:
+
+```python title="api.py"
+import os
+
+from fastapi import FastAPI
+from fluxfast import (
+    FluxFast,
+    Page,
+    invalidate_resource,
+    merge_object,
+    mutation,
+    resource,
+    scope,
+)
+from pydantic import BaseModel, Field
+
+app = FastAPI()
+flux = FluxFast(app, debug=os.environ.get("APP_ENV") == "development")
+count = 0
+
+
+class Stats(BaseModel):
+    count: int
+
+
+class IncrementInput(BaseModel):
+    amount: int = Field(ge=1, le=10)
+
+
+STATS = flux.define_resource("stats", Stats)
+
+
+def load_stats() -> Stats:
+    return Stats(count=count)
+
+
+@flux.page("/stats", name="stats")
+async def stats_page() -> Page:
+    return Page(
+        component="stats/index",
+        resources=[resource(STATS, load_stats, scope=scope.public(), ttl=30)],
+    )
+
+
+@flux.mutation("/stats/increment", name="increment_stats")
+async def increment_stats(body: IncrementInput):
+    global count
+    count += body.amount
+    return mutation(
+        patches={"stats": merge_object({"count": count})},
+        invalidates=[invalidate_resource("stats", scope=scope.public())],
+    )
+```
+
+`define_resource` declares the value type. `resource` attaches its loader and cache policy to the
+authorized page request. `scope.public()` is appropriate only because every caller may see the
+same counter. Private values need an authenticated user or tenant scope and FastAPI access checks.
+
+The mutation changes the authoritative value before returning a patch. Its scoped invalidation
+also deletes the public server cache entry; a browser-only invalidation would not do that.
+In a real application, commit the database transaction before advertising its results.
+
+## 3. Read the protocol and operate the stores
+
+Create `advanced-client.mjs` beside `api.py`:
+
+```js title="advanced-client.mjs"
+import {
+  FluxRouter,
+  TransportError,
+  ValidationError,
+  createFetchTransport,
+  createValidator,
+} from "@fluxfast/core";
+
+const baseUrl = process.env.FLUXFAST_LAB_URL ?? "http://127.0.0.1:8000";
+const transport = createFetchTransport(baseUrl);
+const initialEnvelope = await transport.visit({
+  url: "/stats",
+  visitId: "lab-initial",
+});
+const router = new FluxRouter({
+  initialEnvelope,
+  transport,
+  deferHistory: true,
+});
+const print = (label, value) => console.log(label, JSON.stringify(value));
+const stats = () => router.resourceStore.getSnapshot("stats");
+
+let notifications = 0;
+const stopStore = router.resourceStore.subscribe("stats", () => {
+  notifications += 1;
+});
+const transportPhases = new Set();
+const stopDiagnostics = router.diagnostics.subscribe(event => {
+  if (event.type === "transport") transportPhases.add(event.data.phase);
+});
+
+try {
+  print("initial", {
+    component: router.pageStore.getSnapshot().component,
+    stats: stats(),
+  });
+
+  // A transport returns validated envelopes; it does not own the stores.
+  const rawMutation = await transport.mutate({
+    url: "/stats/increment",
+    data: { amount: 2 },
+  });
+  print("transportOnly", {
+    patch: rawMutation.mutation.patches.stats,
+    localValue: stats(),
+  });
+
+  // Canonical loading updates the runtime from the current FastAPI route.
+  await router.refresh({ only: ["stats"] });
+  print("afterRefresh", stats());
+
+  // The router applies patches and revalidates subscribed invalidated keys.
+  await router.mutate("/stats/increment", { amount: 1 });
+  print("afterRouterMutation", {
+    value: stats(),
+    status: router.resourceStore.getStateSnapshot("stats").status,
+  });
+
+  const amountValidator = createValidator({
+    kind: "integer",
+    minimum: 1,
+    maximum: 10,
+  });
+  const invalid = amountValidator.validate(0);
+  print("localValidation", {
+    valid: invalid.valid,
+    codes: invalid.issues.map(issue => issue.code),
+  });
+
+  // Bypass local validation to prove that the server still rejects the body.
+  try {
+    await transport.mutate({ url: "/stats/increment", data: { amount: 0 } });
+    throw new Error("Expected server validation to reject amount=0");
+  } catch (error) {
+    if (!(error instanceof ValidationError)) throw error;
+    print("serverValidation", {
+      name: error.name,
+      fields: Object.keys(error.details),
+    });
+  }
+
+  try {
+    await transport.visit({ url: "/missing", visitId: "lab-missing" });
+    throw new Error("Expected a missing-page error");
+  } catch (error) {
+    if (!(error instanceof TransportError)) throw error;
+    print("missingPage", { name: error.name, status: error.status });
+  }
+
+  print("observations", {
+    storeNotificationsReceived: notifications > 0,
+    transportStart: transportPhases.has("start"),
+    transportSuccess: transportPhases.has("success"),
+    transportError: transportPhases.has("error"),
+  });
+
+  // Clear browser-owned data after a real logout or identity transition.
+  router.clear();
+  print("afterClear", { valueAvailable: stats() !== undefined });
+} finally {
+  stopDiagnostics();
+  stopStore();
+  router.destroy();
+}
+```
+
+`deferHistory: true` keeps this terminal client independent of browser history. It does not turn
+the runtime into a server renderer. The `stats/index` component is returned as data; this lab
+does not resolve or render a React module.
+
+### Run and compare the results
+
+Start a fresh backend in the first terminal, from the lab directory:
+
+```bash
+APP_ENV=development python -m uvicorn api:app --host 127.0.0.1 --port 8000
+```
+
+Run the client in a second terminal, also from the lab directory:
+
+```bash
+node advanced-client.mjs
+```
+
+On a freshly started backend, the expected output is:
+
+```text
+initial {"component":"stats/index","stats":{"count":0}}
+transportOnly {"patch":[{"op":"merge-object","value":{"count":2}}],"localValue":{"count":0}}
+afterRefresh {"count":2}
+afterRouterMutation {"value":{"count":3},"status":"ready"}
+localValidation {"valid":false,"codes":["minimum"]}
+serverValidation {"name":"ValidationError","fields":["amount"]}
+missingPage {"name":"TransportError","status":404}
+observations {"storeNotificationsReceived":true,"transportStart":true,"transportSuccess":true,"transportError":true}
+afterClear {"valueAvailable":false}
+```
+
+Running the client again continues incrementing the same process-local counter. Restart Python
+before reproducing the exact numbers above. If port 8000 is occupied, choose another loopback port
+for Uvicorn and set the same port for the client, for example:
+
+```bash
+FLUXFAST_LAB_URL=http://127.0.0.1:8001 node advanced-client.mjs
+```
+
+## 4. Understand which API does which job
+
+On narrow screens, scroll this table horizontally to read the input and result columns.
+
+| API | Input | Result and responsibility |
+| --- | --- | --- |
+| `createFetchTransport(baseUrl)` | A trusted transport base URL | A native-fetch implementation of the page and mutation transport contract. |
+| `transport.visit(request)` | URL, visit ID, optional known versions, selected keys, headers, and abort signal | A validated `PageEnvelope`; no component rendering or store update. |
+| `transport.mutate(request)` | URL, optional method, JSON data, headers, and abort signal | A validated `MutationEnvelope`; no automatic patch application. The default method is POST. |
+| `new FluxRouter(options)` | Initial envelope and optional injected runtime dependencies | The runtime that coordinates resources, page state, navigation, patches, invalidations, and cleanup. |
+| `router.refresh({ only })` | Keys declared by the current page | Canonical resource loading without navigating. A valid server cache entry may still satisfy it. |
+| `router.mutate(url, data)` | Mutation URL and body | The mutation envelope after runtime patch application and required active-resource revalidation. |
+| `resourceStore.subscribe(key, callback)` | Key and change listener | An unsubscribe function. Callbacks signal a change; read the current value separately. |
+| `resourceStore.getSnapshot(key)` | Key | The value, or `undefined` when unavailable. It is not a `{ data, status }` wrapper. |
+| `resourceStore.getStateSnapshot(key)` | Key | Data plus loading/error/stale metadata for presentation. |
+| `createValidator(plan)` | A supported validation plan | A validator with `validate`, `is`, and `assert`. It cannot authorize a write. |
+| `router.diagnostics.subscribe(listener)` | A development-only observer | An unsubscribe function; safe metadata observations, not application data or retained history. |
+| `router.clear()` / `router.destroy()` | No arguments | Clear identity-bound client state / dispose the runtime when its owner ends. |
+
+The subscription in this example matters: invalidated subscribed resources are canonically
+reloaded after a router mutation. An unsubscribed invalidated value can instead be removed from
+the store. Subscriptions belong to the UI or integration lifecycle; do not create permanent
+listeners just to force data to remain cached.
+
+### Validation errors are not ordinary transport errors
+
+An HTTP 422 validation response becomes `ValidationError` with field details. A missing page in
+this direct transport becomes `TransportError` with `status === 404`. Malformed envelopes can
+raise protocol errors instead. Do not assume every rejected operation has an HTTP status or
+swallow unrelated exceptions.
+
+Next.js translates initial page 404s into its own not-found boundary. That rendering behavior
+belongs to the adapter, not to `createFetchTransport`. See the [Next API reference](/FluxFast-Docs/next-api/).
+
+### Diagnostics and cleanup are explicit
+
+An active diagnostics observer opts transport requests into development traces. The backend
+still decides whether traces are available; `debug=False` refuses them. Observe bounded metadata
+such as event phases, paths, keys, and counts, never request bodies or resource values. Keep this
+subscription development-only in a real application, unsubscribe when the inspector closes,
+and let your tool own any bounded recording buffer.
+
+`router.clear()` does not log out a user, expire a session cookie, or delete server caches. Your
+backend performs the actual logout. Clear client state after that operation and load the newly
+authorized page; never reuse an old user's resource values for the next identity.
+`router.destroy()` disposes the runtime when the application owner is finished with it.
+An active store subscription can retain value-free state metadata after `clear()`; test that the
+old value is unavailable rather than assuming every inspection row must disappear.
+
+## Continue with the complete reference
+
+- [Advanced Stable APIs](/FluxFast-Docs/advanced-stable-apis/) explains cache, transport, live,
+  protocol, server-handler, and generator integration contracts.
+- [Core API reference](/FluxFast-Docs/core-api/) lists every supported symbol and its classification.
+- [Version and upgrade guide](/FluxFast-Docs/version-guide/) separates published v1.1 examples
+  from explicitly unreleased foundation APIs.
+- [Development DevTools](/FluxFast-Docs/devtools/) shows the normal React inspector integration.

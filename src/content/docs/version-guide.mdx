@@ -1,0 +1,134 @@
+---
+title: Versions and upgrading
+description: Identify the published FluxFast version, install matching packages, verify an upgrade, and distinguish unreleased adapter APIs from usable releases.
+---
+
+import { Aside } from '@astrojs/starlight/components';
+
+The latest published stable release covered by the runnable tutorials is **FluxFast 1.1.0**.
+The documentation also imports reviewed development material from the application repository's
+`main` branch. A section marked **unreleased v1.2** describes development work, not a package
+you can install from the stable registries today.
+
+<Aside type="caution" title="Stable classification is not a publication notice">
+  An API's compatibility classification describes its supported contract. It does not mean a new
+  export already exists in every older package. Check the section's version label and the release
+  notes before copying a new import. In particular, published `@fluxfast/core@1.1.0` does not export
+  `@fluxfast/core/server`.
+</Aside>
+
+## What can I use now?
+
+On narrow screens, scroll the table horizontally to compare all three columns.
+
+| Version | Availability | What it adds |
+| --- | --- | --- |
+| [1.0.0](/FluxFast-Docs/releases/v1-0-0/) | Published stable | The stable FastAPI, Core, and Next.js contracts, typed generation, forms, deferred/live resources, and managed production runtime. |
+| [1.0.1](/FluxFast-Docs/releases/v1-0-1/) | Published stable | Routable generated Next.js handlers and project-local agent integration knowledge. |
+| [1.1.0](/FluxFast-Docs/releases/v1-1-0/) | Latest published stable documented here | Optional development DevTools and bounded runtime/server observations. Existing application APIs remain compatible. |
+| Unreleased v1.2 foundation | Development material only | A separate framework-neutral Core server integration surface. It does not replace your installed Next.js setup or announce another supported frontend adapter. |
+
+The [Core reference](/FluxFast-Docs/core-api/#server-adapter-primitives-unreleased-v12) explicitly
+labels its new server helpers. Until a release publishes them, ordinary applications should keep
+their existing `@fluxfast/next/server` integration and generated handlers. Do not copy development
+files into `node_modules` or import private package internals to make an unavailable API work.
+
+## Install matched v1.1 packages
+
+Activate your application's Python environment and run this from its root:
+
+```bash
+python -m pip install --upgrade "fluxfast==1.1.0"
+cd frontend
+npm install @fluxfast/core@1.1.0 @fluxfast/next@1.1.0
+```
+
+The optional inspector belongs in the frontend's development dependencies:
+
+```bash
+npm install --save-dev @fluxfast/devtools@1.1.0
+cd ..
+```
+
+Keep your existing package manager; npm is only the example here. Matching versions across Python,
+Core, Next, and optional DevTools are the recommended application baseline. Upgrade Next.js and
+React within their supported ranges separately, including security patches.
+
+### Verify the installed versions
+
+```bash
+python -c 'from importlib.metadata import version; print(version("fluxfast"))'
+npm --prefix frontend ls @fluxfast/core @fluxfast/next @fluxfast/devtools --depth=0
+```
+
+The Python command should print `1.1.0`. The npm listing should show `@fluxfast/core@1.1.0`,
+`@fluxfast/next@1.1.0`, and `@fluxfast/devtools@1.1.0` if you installed the inspector. Its project
+name, path, and tree formatting vary. A GitHub tag, source checkout, or successful docs deployment
+does not establish which package versions your application has installed.
+
+## Regenerate, verify, and run your application
+
+For an application with `backend/main.py` exporting `app` and a `frontend/` directory:
+
+```bash
+cd frontend
+npx --no-install fluxfast init
+cd ..
+fluxfast types backend.main:app --frontend frontend
+fluxfast types backend.main:app --frontend frontend --check
+cd frontend
+npx --no-install fluxfast doctor
+cd ..
+fluxfast build --app backend.main:app --frontend frontend
+fluxfast doctor --app backend.main:app --frontend frontend --production --strict
+```
+
+Run these with the application's normal build-time configuration. `init` refreshes managed
+integration files and project agent knowledge; it preserves unrelated application content.
+`types` regenerates contracts from your authoritative backend declarations. Never manually patch
+the generated registry, validators, route helpers, or mutation helpers to repair drift.
+
+There are two command entry points: `npx --no-install fluxfast` runs the already installed Next
+adapter's setup/generation CLI from the frontend; the Python environment's `fluxfast` runs backend
+schema export, typed orchestration, and the managed runtime from the application root.
+
+After verification, start the local production runtime:
+
+```bash
+fluxfast start backend.main:app --frontend frontend
+```
+
+Visit `http://127.0.0.1:3000` and verify your own pages and permissions, a valid and invalid form
+submission, a missing page, shared-resource navigation, and any deferred/live flows you use.
+The browser still uses one public origin; do not configure a browser-visible backend port.
+Stop with Ctrl+C. This is a local verification step, not an instruction to deploy to production.
+
+## Add DevTools without changing application correctness
+
+In an application-owned client component below the FluxFast provider:
+
+```tsx
+import { FluxDevtools } from "@fluxfast/devtools";
+
+{process.env.NODE_ENV === "development" && <FluxDevtools />}
+```
+
+Enable backend traces only through your explicit development configuration:
+
+```python
+flux = FluxFast(app, debug=settings.environment == "development")
+```
+
+Here `settings` is your application's configuration object. The client opt-in is not an
+authorization override. See [DevTools](/FluxFast-Docs/devtools/) for a complete mount example,
+production exclusion, data-safety limits, and troubleshooting.
+
+## Package, protocol, and schema versions are different
+
+Upgrading packages to 1.1.0 does not rename the wire protocol. The current published application
+contract remains `fluxfast/1`; typed generation uses `fluxfast-schema/2`, with the documented
+schema/1 reader compatibility. Do not derive either identifier from the npm or PyPI version.
+
+Read the [versioning contract](/FluxFast-Docs/versioning/) for compatibility policy, the
+[migration guide](/FluxFast-Docs/migration/) for older release lines, and the
+[v1.1 release notes](/FluxFast-Docs/releases/v1-1-0/) for the published changes.
