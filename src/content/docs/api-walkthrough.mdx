@@ -1,0 +1,521 @@
+---
+title: API walkthrough
+description: Follow runnable FluxFast 1.1 Python and React examples with actual page, mutation, validation, deferred, and live results.
+---
+
+import { Aside } from '@astrojs/starlight/components';
+
+This walkthrough connects the APIs you use in an ordinary application. Instead of just listing
+arguments, it shows **what you declare, what you call, what FluxFast returns, and what changes on
+screen**. It targets the published **FluxFast 1.1.0** packages and the Next.js adapter.
+
+Complete the [Quickstart](/FluxFast-Docs/getting-started/) first so you have a virtual environment,
+`backend/main.py`, and an initialized `frontend/` with `src/flux-pages/`. Then replace the three
+application files below. Keep the generated catch-all, config, and transport handlers from
+`fluxfast init`.
+
+To reproduce this exact version, use matched packages in the activated virtual environment and
+initialized frontend (npm is shown; pnpm, Yarn, and Bun are also supported):
+
+```bash
+python -m pip install "fluxfast==1.1.0"
+cd frontend
+npm install @fluxfast/core@1.1.0 @fluxfast/next@1.1.0
+cd ..
+```
+
+<Aside type="caution" title="A public, single-process teaching application">
+  The counter is intentionally public and stored in one Python process. Restarting the backend
+  resets it. This is not persistent storage or a multi-worker architecture. Real applications
+  should use a database, authenticated FastAPI dependencies, appropriately isolated cache scopes,
+  and their normal CSRF protections. The [distributed cache guide](/FluxFast-Docs/distributed-cache/)
+  explains shared cache and live coordination across workers.
+</Aside>
+
+## 1. Declare contracts, then attach loaders to a page
+
+`define_resource(key, type)` declares the authoritative **value contract** once. It does not load
+data or accept a cache policy. `resource(contract, loader, ...)` attaches a **zero-argument loader**
+and lifecycle to one page response. `Page` selects the allowlisted component and its resource graph.
+
+```python title="backend/main.py"
+import asyncio
+import os
+
+from fastapi import FastAPI
+from fluxfast import (
+    FluxFast,
+    Page,
+    invalidate_resource,
+    merge_object,
+    mutation,
+    resource,
+    scope,
+)
+from pydantic import BaseModel, Field
+
+app = FastAPI()
+flux = FluxFast(app, debug=os.environ.get("APP_ENV") == "development")
+visits = 0
+
+
+class SiteSummary(BaseModel):
+    message: str
+    visits: int
+
+
+class VisitReport(BaseModel):
+    doubled_visits: int
+
+
+class IncrementVisitsInput(BaseModel):
+    amount: int = Field(ge=1, le=10)
+
+
+SITE_SUMMARY = flux.define_resource("site-summary", SiteSummary)
+VISIT_REPORT = flux.define_resource("visit-report", VisitReport)
+
+
+def load_summary() -> SiteSummary:
+    return SiteSummary(message="Hello from FastAPI", visits=visits)
+
+
+async def load_report() -> VisitReport:
+    # Simulate secondary work so the deferred loading state is easy to see.
+    await asyncio.sleep(0.4)
+    return VisitReport(doubled_visits=visits * 2)
+
+
+def shared_summary():
+    return resource(
+        SITE_SUMMARY,
+        load_summary,
+        scope=scope.public(),
+        ttl=30,
+        live=True,
+    )
+
+
+@flux.page("/", name="home")
+async def home() -> Page:
+    return Page(
+        component="home/index",
+        resources=[
+            shared_summary(),
+            resource(VISIT_REPORT, load_report, defer=True),
+        ],
+    )
+
+
+@flux.page("/about", name="about")
+async def about() -> Page:
+    return Page(component="about/index", resources=[shared_summary()])
+
+
+@flux.mutation("/visits", name="increment_visits")
+async def increment_visits(body: IncrementVisitsInput):
+    global visits
+    visits += body.amount
+    return mutation(
+        patches={"site-summary": merge_object({"visits": visits})},
+        invalidates=[
+            invalidate_resource("site-summary", scope=scope.public()),
+            invalidate_resource("visit-report"),
+        ],
+    )
+```
+
+The summary is blocking, cached for 30 seconds in an explicit public scope, and live. The report
+is deferred and request-scoped: it is not cached across requests. Both routes select modules under
+`src/flux-pages/`; the component identifier does not create a URL or grant access to data.
+
+## 2. Read values and submit a validated form
+
+Create the following two components. The generated names referenced here become available after
+the generation step below.
+
+```tsx title="frontend/src/flux-pages/home/index.tsx"
+"use client";
+
+import { useState, type FormEvent } from "react";
+import {
+  Link,
+  useDeferredResource,
+  useForm,
+  useLiveStatus,
+  usePage,
+  useResource,
+  useResourceState,
+  useRouter,
+} from "@fluxfast/next";
+import {
+  resourceKeys,
+  type IncrementVisitsBody,
+} from "@/.fluxfast/types.generated";
+import { IncrementVisitsBodyValidator } from "@/.fluxfast/validators.generated";
+
+export default function HomePage() {
+  const page = usePage();
+  const router = useRouter();
+  const summary = useResource(resourceKeys.siteSummary);
+  const summaryState = useResourceState(resourceKeys.siteSummary);
+  const report = useDeferredResource(resourceKeys.visitReport);
+  const live = useLiveStatus();
+  const [requestError, setRequestError] = useState<string | null>(null);
+  const form = useForm<IncrementVisitsBody>(
+    { amount: 1 },
+    { validator: IncrementVisitsBodyValidator },
+  );
+
+  async function submit(event: FormEvent<HTMLFormElement>) {
+    setRequestError(null);
+    try {
+      await form.submit("/visits", {
+        preserveScroll: true,
+        onSuccess: () => form.reset(),
+      })(event);
+    } catch {
+      setRequestError("The request failed. Please try again.");
+    }
+  }
+
+  async function refreshSummary() {
+    setRequestError(null);
+    try {
+      await router.refresh({ only: [resourceKeys.siteSummary] });
+    } catch {
+      setRequestError("The refresh failed. Please try again.");
+    }
+  }
+
+  async function retryReport() {
+    setRequestError(null);
+    try {
+      await report.retry();
+    } catch {
+      setRequestError("The report is still unavailable. Please try again.");
+    }
+  }
+
+  return (
+    <main>
+      <h1>FluxFast API walkthrough</h1>
+      <p>Current URL: {page.url}</p>
+      <p>{summary.message}</p>
+      <p>Visits: {summary.visits}</p>
+      {summaryState.stale && <p>Refreshing the summary…</p>}
+      <p>Live connection: {live.status}</p>
+
+      <section aria-label="Deferred report">
+        {report.data ? (
+          <p>Doubled visits: {report.data.doubled_visits}</p>
+        ) : report.isError ? null : (
+          <p>Loading the report…</p>
+        )}
+        {report.data && report.stale && <p>Refreshing the report…</p>}
+        {report.isError && (
+          <div role="alert">
+            <p>The report could not be loaded.</p>
+            <button type="button" onClick={retryReport}>Retry report</button>
+          </div>
+        )}
+      </section>
+
+      <form onSubmit={submit} noValidate>
+        <label htmlFor="visit-amount">Visits to add (1–10)</label>
+        <input
+          id="visit-amount"
+          type="number"
+          value={form.data.amount}
+          aria-invalid={Boolean(form.errors.amount)}
+          aria-describedby={form.errors.amount ? "amount-error" : undefined}
+          onChange={event => form.setData("amount", Number(event.target.value))}
+        />
+        {form.errors.amount && <p id="amount-error" role="alert">{form.errors.amount}</p>}
+        <button type="submit" disabled={form.processing}>
+          {form.processing ? "Saving…" : "Add visits"}
+        </button>
+        {form.recentlySuccessful && <p role="status">Saved.</p>}
+      </form>
+
+      {requestError && <p role="alert">{requestError}</p>}
+      <button type="button" onClick={refreshSummary}>Refresh summary</button>
+      <Link href="/about">About this app</Link>
+    </main>
+  );
+}
+```
+
+```tsx title="frontend/src/flux-pages/about/index.tsx"
+"use client";
+
+import { Link, useResource } from "@fluxfast/next";
+import { resourceKeys } from "@/.fluxfast/types.generated";
+
+export default function AboutPage() {
+  const summary = useResource(resourceKeys.siteSummary);
+  return (
+    <main>
+      <h1>About this app</h1>
+      <p>The shared visit count is {summary.visits}.</p>
+      <Link href="/">Home</Link>
+    </main>
+  );
+}
+```
+
+Generate from the project root, then run the application:
+
+```bash
+fluxfast types backend.main:app --frontend frontend
+fluxfast types backend.main:app --frontend frontend --check
+APP_ENV=development fluxfast dev backend.main:app --frontend frontend
+```
+
+Open `http://127.0.0.1:3000`. Before the first mutation, the expected rendered values are:
+
+```text
+Current URL: /
+Hello from FastAPI
+Visits: 0
+Live connection: connected       (after the stream connects)
+Doubled visits: 0               (after the deferred request settles)
+```
+
+The report initially displays **Loading the report…**. Its request starts after hydration; it
+does not hold up the initial summary HTML. The generated type names are derived from the named
+Python mutation, so `increment_visits` produces `IncrementVisitsBody` and its validator.
+
+## 3. Understand the value, state, and wire response
+
+These APIs are related but return different things:
+
+| API | Returns | Use it for |
+| --- | --- | --- |
+| `useResource(resourceKeys.siteSummary)` | `{ message: string; visits: number }` | A blocking resource's value; access `summary.visits`, not `summary.data.visits`. |
+| `useResourceState(resourceKeys.siteSummary)` | A snapshot containing `data`, `status`, `stale`, and `error` | Loading/error/stale presentation without discarding the previous value. |
+| `useDeferredResource(resourceKeys.visitReport)` | The state snapshot plus `isPending`, `isLoading`, `isReady`, `isError`, and `retry()` | Secondary data that may not exist during the first render. |
+| `usePage()` | The active component, URL, and optional page metadata | Current-page presentation; it is not a second routing table. |
+| `useLiveStatus()` | Connection status and reconnect metadata | Optional connection UI; resource hooks already receive live changes. |
+
+A cold initial request that negotiates deferred and live support has a page response shaped like
+this. The version below is a placeholder for an opaque string, not a promised literal value:
+
+```json title="Initial page response (relevant fields)"
+{
+  "protocol": "fluxfast/1",
+  "page": { "component": "home/index", "url": "/" },
+  "resourceKeys": ["site-summary", "visit-report"],
+  "resources": {
+    "site-summary": {
+      "version": "opaque-summary-version",
+      "value": { "message": "Hello from FastAPI", "visits": 0 }
+    }
+  },
+  "deferred": ["visit-report"],
+  "live": ["site-summary"]
+}
+```
+
+`status` and `data` are client state fields. The wire resource record is `{ version, value }`.
+Do not compare versions numerically or generate versions in React.
+
+After hydration, FluxFast requests the report from the **same authorized page** with
+`X-FluxFast-Only: visit-report`. Its response includes:
+
+```json title="Deferred follow-up (resources field)"
+{
+  "resources": {
+    "visit-report": {
+      "version": "opaque-report-version",
+      "value": { "doubled_visits": 0 }
+    }
+  }
+}
+```
+
+This is a fragment of a normal page envelope, not a separate report endpoint. The follow-up updates
+the resource store without navigating, changing history, or replacing the page component. For an
+isolated deferred failure, the envelope can contain `resourceErrors`; `report.isError` exposes
+that state and `report.retry()` reloads only that key.
+
+## 4. Submit, validate, patch, and invalidate
+
+Enter `2` and select **Add visits**. `form.submit` runs the generated validator, sets `processing`,
+and calls the existing router mutation path. FastAPI validates the body again before executing
+the handler:
+
+```json title="POST /visits — request body"
+{ "amount": 2 }
+```
+
+Starting from zero, the successful response is:
+
+```json title="Mutation response"
+{
+  "protocol": "fluxfast/1",
+  "mutation": {
+    "patches": {
+      "site-summary": [
+        { "op": "merge-object", "value": { "visits": 2 } }
+      ]
+    },
+    "invalidate": ["site-summary", "visit-report"]
+  }
+}
+```
+
+The patch makes the originating browser display **Visits: 2** immediately. Invalidation marks the
+subscribed keys stale and triggers canonical resource-only loading. The report then displays
+**Doubled visits: 4**. The `message` field survives because `merge_object` is a shallow object merge,
+not a complete replacement. Normalization wraps the single Python patch in a wire patch list.
+
+The two invalidation descriptors have deliberately different jobs:
+
+- `invalidate_resource("site-summary", scope=scope.public())` deletes that public server cache
+  entry, tells the caller to refresh, and publishes a scoped live signal.
+- `invalidate_resource("visit-report")` tells the caller to refresh the report. There is no
+  cross-request report cache or live subscription to invalidate in this example.
+
+A string-only `mutation(invalidate=["site-summary"])` is a browser hint; it is not a safe substitute
+for deleting a scoped server cache entry. Persist your database transaction before returning
+patches or invalidations. A UI patch is not a database write.
+
+### Invalid input is still rejected on the server
+
+Entering `0` in this form fails client validation and sends no mutation. `noValidate` intentionally
+disables the browser's separate HTML validation so you can see FluxFast's generated validator at
+work. If a caller bypasses the form and submits `{ "amount": 0 }`, FastAPI returns HTTP 422:
+
+```json title="Server validation response"
+{
+  "protocol": "fluxfast/1",
+  "error": {
+    "type": "ValidationError",
+    "message": "Request validation failed",
+    "details": { "amount": ["Input should be greater than or equal to 1"] }
+  }
+}
+```
+
+`useForm` maps server field errors to `form.errors`/`form.errorMap`. The exact human-readable message
+can vary with the server validator; the important contract is the 422 validation envelope and
+field mapping. Network and non-validation failures are handled by the component's `catch` block.
+Client validation improves UX; it is never authorization or an authoritative write boundary.
+
+### Call a generated mutation helper outside a form
+
+For buttons or application actions without form state, use the generated helper instead. Inside
+a component with `const router = useRouter()`, import and call:
+
+```tsx
+import { mutations } from "@/.fluxfast/mutations.generated";
+
+const response = await mutations.incrementVisits(router, { body: { amount: 2 } });
+// response.protocol === "fluxfast/1"
+// response.mutation.invalidate includes "site-summary" and "visit-report".
+```
+
+The helper fixes the method and types the body, then returns a `MutationEnvelope`. It does not
+create `useForm` processing flags or map errors into a form. Handle rejection in your action and
+do not call both this helper and `form.submit` for the same operation.
+
+## 5. Navigate, reuse resources, and refresh selectively
+
+Select **About this app**. `<Link href="/about">` performs a FluxFast visit; FastAPI selects
+`about/index`, and the generated registry resolves that component. Both pages declare the same
+`site-summary` contract and public scope.
+
+Within the valid server cache lifetime, the browser can advertise its known version. If that
+version matches, the server omits the unchanged summary value from the response. The browser
+keeps its existing value, so About still shows **The shared visit count is 2**. An absent key in a
+delta is not a deletion; cache expiry or an invalidation can require the value to be sent again.
+
+Programmatic calls inside a component use the same router:
+
+```tsx
+const router = useRouter();
+
+await router.visit("/about", { preserveScroll: true });
+await router.visit("/", { replace: true });
+await router.refresh({ only: [resourceKeys.siteSummary] });
+```
+
+`visit` changes the active page; `replace` replaces the current history entry rather than adding
+one. The selective refresh reruns the current FastAPI route and reloads only its declared summary,
+without navigating or refreshing the report. **Refresh is not cache eviction**: a valid server
+cache entry may still satisfy it. Authoritative writes should invalidate their scope.
+
+Route helpers avoid copying dynamic URL construction into React. For the named routes above:
+
+```tsx
+import { routes } from "@/.fluxfast/routes.generated";
+
+<Link href={routes.about()}>About this app</Link>
+```
+
+See [Type generation](/FluxFast-Docs/type-safety/) for path/query parameters and safe encoding.
+
+## 6. Verify a live change in a second tab
+
+Open `/` in two tabs and wait for both to show a connected live status. Submit `1` in tab A.
+Tab B receives the summary invalidation, reloads that resource canonically, and updates its visit
+count without polling or refreshing the document. Tab A handles its mutation response and suppresses
+only its own echoed live event.
+
+The report in tab B does **not** automatically change: it was declared deferred, not live.
+Deferred and live are independent options. If the report should also follow shared changes, add
+an explicit reusable scope and `live=True` to its declaration and return a matching scoped report
+invalidation. Keep its `defer=True` flag if the first load should remain non-blocking.
+
+The default in-memory broker is suitable for this one-process demo. Multiple workers need shared
+authoritative storage plus [Redis coordination](/FluxFast-Docs/distributed-cache/). Live delivery
+is not a durable event log: reconnect performs canonical resynchronization to recover current state.
+
+## 7. Inspect the workflow with v1.1 DevTools
+
+DevTools is optional and observes the existing runtime. It does not create a second live stream
+or replace any of the APIs above. Install the matching development dependency:
+
+```bash
+cd frontend
+npm install --save-dev @fluxfast/devtools@1.1.0
+```
+
+For this walkthrough you can mount it in `HomePage`: add the import and place the guarded component
+inside that page's `<main>`:
+
+```tsx
+import { FluxDevtools } from "@fluxfast/devtools";
+
+{process.env.NODE_ENV === "development" && (
+  <FluxDevtools defaultOpen maxEvents={250} />
+)}
+```
+
+This page is already below the generated FluxFast provider, so no router prop is required. A
+page-local inspector unmounts when you visit About; mount it in an application-owned shell if
+you want recording to survive navigation. Never edit `pages.generated.ts` to add it. The
+[DevTools guide](/FluxFast-Docs/devtools/) shows the complete provider-level integration.
+
+With `APP_ENV=development`, the backend example explicitly enables safe server timings. Inspect:
+
+- **Resources:** summary version, ready/stale state, cache classification, deferred report state.
+- **Timeline:** initial SSR/hydration, deferred follow-up, mutation, and canonical resource refresh.
+- **Cache:** browser page-cache activity separately from server resource-cache hits and misses.
+- **Mutations:** the merge operation and two invalidated keys, without the body or patch values.
+- **Live:** connection and invalidation activity, followed by canonical resynchronization.
+- **Protocol:** negotiated capabilities and safe request/response metadata.
+
+DevTools intentionally does not show `summary.message`, `summary.visits`, credentials, request
+bodies, user/tenant identities, or patch values. Its trace is diagnostic metadata, not an API
+response inspector containing application data. Run production without `APP_ENV=development`;
+keep both the JSX development guard and the explicit backend debug gate.
+
+## Where to go next
+
+- [Stable APIs](/FluxFast-Docs/stable-apis/) — declaration/use examples for the supported application surface.
+- [Advanced Stable APIs](/FluxFast-Docs/advanced-stable-apis/) — cache, broker, transport, and tooling integrations.
+- [Wire protocol](/FluxFast-Docs/protocol/) — complete envelopes, headers, limits, and compatibility rules.
+- [Production deployment](/FluxFast-Docs/production/) — build, readiness, graceful shutdown, and private backend wiring.
+- [Reference applications](/FluxFast-Docs/examples/) — larger applications with persistence and different architectural boundaries.
