@@ -22,9 +22,10 @@ and native validation-plan data. It can also safely persist generated artifacts 
 expected bytes with files already on disk. It does not fetch page envelopes, render an interface,
 run a mutation, or authorize a user.
 
-The current extraction keeps Next.js responsible for scanning and rendering its page registry.
-Codegen accepts that adapter-prepared registry as an explicit input. This lab uses a small teaching
-registry to demonstrate the lower-level contract; it is not another supported frontend adapter.
+Codegen also scans page modules and renders a registry when you supply an explicit runtime target.
+The Next.js wrapper selects its existing runtime exports and client directive automatically.
+The shared scanner does not install a runtime or implement a new frontend adapter: its current
+registry template is React-style. This lab uses the Next target and actual source page files.
 
 | API group | Input | Output | Why you would use it |
 | --- | --- | --- | --- |
@@ -32,6 +33,7 @@ registry to demonstrate the lower-level contract; it is not another supported fr
 | Types, routes, and mutations | A validated backend manifest | TypeScript **source strings** | Build typed resource values and helpers for routes already owned by FastAPI. |
 | Validator compilation | The manifest and an unsupported-contract policy | Source, supported contract names, and diagnostics; strict compilation can throw | Keep browser validation explicit rather than silently weakening unsupported contracts. |
 | Native validation plan | One supported JSON Schema object | Plan **data**, such as `{ root: { kind: "string" } }` | Prepare a plan for Core's separate validation runtime. |
+| Page registry snapshot | A source directory, output path, and explicit runtime target | Source text, scanned filenames, and allowlisted component identifiers, without writing files | Prepare the registry for an adapter or inspect it before generation. |
 | Project generation | Schema input, output directory, and adapter-prepared registry | Generated paths and validator diagnostics | Persist the six-artifact set with safe replacement behavior. |
 | Project checking | The same authoritative inputs | `current`, `checkedFiles`, and `staleFiles` | Detect drift in CI without writing or creating directories. |
 
@@ -100,6 +102,7 @@ import {
   compileFluxFastValidators,
   compileFluxFastValidatorsWithDiagnostics,
   compileJsonSchemaToValidationPlan,
+  createPagesRegistrySnapshot,
   generateFluxFastProject,
   parseFluxFastSchemaManifest,
   SchemaManifestValidationError,
@@ -162,18 +165,27 @@ try {
 
 // A fresh scratch project, never an application's existing generated directory.
 const scratch = fs.mkdtempSync(path.join(os.tmpdir(), "fluxfast-codegen-lab-"));
-const pagesDir = path.join(scratch, "src/pages");
+const pagesDir = path.join(scratch, "src/flux-pages");
 const generatedDir = path.join(scratch, "src/.fluxfast");
 fs.mkdirSync(path.join(pagesDir, "stats"), { recursive: true });
-fs.writeFileSync(path.join(pagesDir, "stats/index.js"),
+fs.writeFileSync(path.join(pagesDir, "stats/index.tsx"),
   "export default function Stats() { return null; }\n");
-const registry = {
+const registryOptions = {
   pagesDir,
   outputFile: path.join(generatedDir, "pages.generated.ts"),
-  files: ["stats/index.js"],
-  identifiers: ["stats/index"],
-  content: 'export const pages = { "stats/index": { load: () => import("../pages/stats/index.js") } };\n',
+  target: {
+    runtimeImport: "@fluxfast/next",
+    rootExport: "FluxRoot",
+    applicationPropsExport: "FluxApplicationProps",
+    clientDirective: true,
+  },
 };
+const registry = createPagesRegistrySnapshot(registryOptions);
+print("registry", {
+  files: registry.files,
+  identifiers: registry.identifiers,
+  outputDirectoryCreated: fs.existsSync(generatedDir),
+});
 const options = { registry, generatedDir, schemaContent, log: false };
 
 const missing = checkFluxFastProject(options);
@@ -192,10 +204,12 @@ print("generated", {
 const current = checkFluxFastProject(options);
 print("afterGeneration", { current: current.current, staleFiles: current.staleFiles });
 
-// Change the adapter's authoritative registry input, not a generated output file.
+// Change an authoritative source page, not a generated output file, then rescan.
+fs.writeFileSync(path.join(pagesDir, "stats/details.tsx"),
+  "export default function Details() { return null; }\n");
 const revised = {
   ...options,
-  registry: { ...registry, content: registry.content + "// Adapter-source revision 2.\n" },
+  registry: createPagesRegistrySnapshot(registryOptions),
 };
 const beforeCheck = fs.readFileSync(registry.outputFile, "utf8");
 const drift = checkFluxFastProject(revised);
@@ -225,6 +239,7 @@ nativePlan {"root":{"kind":"string","minLength":2}}
 invalidManifest {"name":"SchemaManifestValidationError","path":"$"}
 unsupported {"contracts":["IncrementStatsBody","StatsResource"],"diagnostics":[{"contract":"CustomInput","path":"$.types.CustomInput.schema.format","keyword":"format"}]}
 strictFailure {"name":"ValidatorCompilationError","keyword":"format"}
+registry {"files":["stats/index.tsx"],"identifiers":["stats/index"],"outputDirectoryCreated":false}
 beforeGeneration {"current":false,"missingCount":6,"outputDirectoryCreated":false}
 generated {"files":["mutations.generated.ts","pages.generated.ts","routes.generated.ts","schema.generated.json","types.generated.ts","validators.generated.ts"],"generatedFileCount":5,"validatorContracts":["IncrementStatsBody","StatsResource"]}
 afterGeneration {"current":true,"staleFiles":[]}
@@ -235,11 +250,100 @@ afterRegeneration {"current":true}
 Standard error prints the scratch directory, which varies by machine and run. Open that directory
 to inspect the generated source. This lab does not modify your application's `.fluxfast` files.
 
-These results were verified against [source commit `77e6641`](https://github.com/El37628/FluxFast/commit/77e664148dff8eef202144ba20f3d85ba6fc70a2)
+These results were verified against [source commit `c3c8e74`](https://github.com/El37628/FluxFast/commit/c3c8e741f055a3287ef30452d9f93558be2a0b87)
 using schema exported by the published Python `fluxfast==1.1.0` package. For an exact reproduction
 after `main` changes, check out that commit in the separate teaching checkout before building.
 
 ## 4. Understand the generated code
+
+### A registry target selects imports, not backend routes
+
+`createPagesRegistrySnapshot(registryOptions)` returns a `PagesRegistrySnapshot`.
+Its `content` is TypeScript source, `files` are the scanned module paths, and `identifiers`
+are the component IDs FastAPI can select from the generated allowlist. It does not create the
+output directory or write the module. `generateFluxFastProject` performs that later write.
+
+With the lab's Next target, the registry contains:
+
+```ts title="Excerpt from pages.generated.ts before the source revision"
+"use client";
+
+import React from "react";
+import { FluxRoot } from "@fluxfast/next";
+import type { ComponentRegistry, FluxApplicationProps } from "@fluxfast/next";
+
+export const fluxPages: ComponentRegistry = {
+  "stats/index": { load: () => import("../flux-pages/stats/index") },
+};
+
+export function FluxApplication(props: FluxApplicationProps) {
+  return React.createElement(FluxRoot, { ...props, registry: fluxPages });
+}
+
+export default fluxPages;
+```
+
+The wrapper fixes `registry` to the generated allowlist even if callers supply a different
+registry in their props. The entry's lazy import loads an already-registered module; it does not
+turn an arbitrary server string into an import path. Only FastAPI creates application routes:
+adding the lab's `stats/details.tsx` module does **not** create a `/stats/details` backend page.
+
+The explicit `FluxPageRegistryTarget` has four fields:
+
+| Field | Declaration in this lab | Meaning |
+| --- | --- | --- |
+| `runtimeImport` | `"@fluxfast/next"` | The module from which the generated registry imports the runtime root and types. The scanner does not install it. |
+| `rootExport` | `"FluxRoot"` | The runtime's component export, used to render the server-selected component with its registry. |
+| `applicationPropsExport` | `"FluxApplicationProps"` | The runtime's exported application-props type. The module must also export `ComponentRegistry`. |
+| `clientDirective` | `true` | Includes `"use client";`. `false` or omission leaves the directive out. |
+
+For an adapter author with an existing compatible React-style runtime, this is a declaration
+example—not an additional supported adapter or an npm package to install:
+
+```ts
+import {
+  createPagesRegistrySnapshot,
+  type FluxPageRegistryTarget,
+  type PagesRegistryOptions,
+} from "@fluxfast/codegen";
+
+const target: FluxPageRegistryTarget = {
+  runtimeImport: "@acme/host-runtime",
+  rootExport: "ApplicationRoot",
+  applicationPropsExport: "ApplicationInput",
+  clientDirective: false,
+};
+const options: PagesRegistryOptions = {
+  pagesDir: "src/flux-pages",
+  outputFile: "src/.fluxfast/pages.generated.ts",
+  target,
+};
+const snapshot = createPagesRegistrySnapshot(options);
+console.log(snapshot.identifiers);
+// ["stats/index"] when stats/index.tsx is the only eligible source page.
+```
+
+The generated runtime imports become:
+
+```ts
+import { ApplicationRoot as FluxRoot } from "@acme/host-runtime";
+import type { ComponentRegistry, ApplicationInput as FluxApplicationProps } from "@acme/host-runtime";
+```
+
+The `FluxApplication`, `fluxPages`, and default export names stay unchanged. The generated wrapper
+still calls React's `createElement`; changing the target does not generate Vue or Svelte code or
+fulfill an adapter's server-fetching, hydration, navigation, streaming, and cleanup requirements.
+
+The shared constructor requires `target`. If paths are omitted, it resolves `src/flux-pages` and
+`src/.fluxfast/pages.generated.ts` against the caller's current directory. It scans `.tsx` and
+`.jsx` modules in sorted order, ignores `.test`, `.spec`, and `.stories` modules and `_`-prefixed filenames, and
+does not traverse nested source symlinks. Duplicate component identifiers and unsupported page
+filename characters throw before any write. Invalid target fields also throw. Runtime specifiers
+are quoted as data; HTML delimiters and Unicode separators are escaped without changing their values.
+
+Existing Next.js applications do not need to supply these fields: the
+`@fluxfast/next/generate` wrapper keeps its optional options and default Next target. The six
+standard Next-generated artifacts retain their published v1.1.0 bytes.
 
 ### A compiler returns source, not a runtime value
 
@@ -304,7 +408,7 @@ the persisted schema's exact bytes.
 
 ### Drift checking is read-only
 
-The `drift` result comes from a change to the adapter's registry input. The test leaves the file
+The `drift` result comes from adding a source page and rescanning the registry. The check leaves the file
 on disk unchanged, then regenerates through `generateFluxFastProject`. The same pattern applies
 to changed backend declarations: export a new schema, check against those inputs, then regenerate.
 Do not repair a generated type, registry, validator, or route helper by hand.
@@ -327,9 +431,9 @@ to overwrite an arbitrary location.
 
 - **FastAPI owns declarations and validation.** The manifest describes backend routes and
   contracts; Codegen does not create new FastAPI routes or grant access to them.
-- **The adapter owns component allowlisting.** The teaching registry explicitly selects
-  `stats/index`; it does not let a server-provided identifier become an unrestricted module path.
-  Use Next's existing registry generator for a supported Next.js application.
+- **The adapter selects its registry target and source directory.** Codegen scans that directory
+  into the allowlist; it does not let a server-provided identifier become an unrestricted module
+  path. Use Next's existing registry generator for a supported Next.js application.
 - **Codegen owns deterministic output and replacement checks.** It compiles schema-backed
   artifacts before the first write, confines destinations to the configured output directory,
   and rejects symlink traversal and unsafe temporary replacements.
@@ -343,7 +447,7 @@ announces a React, Vue, or Svelte adapter.
 
 ## Continue with the references
 
-- [Codegen API](/FluxFast-Docs/codegen-api/) gives a declaration or use example for all 26 public
+- [Codegen API](/FluxFast-Docs/codegen-api/) gives a declaration or use example for all 29 public
   exports, including types, errors, inspection helpers, and generation results.
 - [Generated artifacts](/FluxFast-Docs/generated-artifacts/) defines the stable file names,
   naming rules, ownership, and drift-check behavior.
