@@ -71,7 +71,7 @@ Define the route and resource where the application policy belongs:
 
 ```python title="backend/main.py"
 from fastapi import FastAPI
-from fluxfast import FluxFast
+from fluxfast import FluxFast, Page, resource, scope
 from pydantic import BaseModel
 
 app = FastAPI()
@@ -81,33 +81,42 @@ class Viewer(BaseModel):
     name: str
     plan: str
 
-viewer = flux.define_resource(
-    "viewer",
-    Viewer,
-    loader=lambda _request: Viewer(name="Ada", plan="pro"),
-    scope="user",
-)
+VIEWER = flux.define_resource("viewer", Viewer)
 
-@flux.page("/dashboard", component="Dashboard")
-async def dashboard(_request):
-    return flux.render(resources=[viewer])
+@flux.page("/dashboard", name="dashboard")
+async def dashboard() -> Page:
+    return Page(
+        component="dashboard/index",
+        resources=[
+            resource(
+                VIEWER,
+                lambda: Viewer(name="Ada", plan="pro"),
+                scope=scope.public(),
+                ttl=30,
+            ),
+        ],
+    )
 ```
+
+This viewer is fixed demonstration data, so public scope is intentional. For a real signed-in
+viewer, authenticate in a FastAPI dependency and derive `scope.user(user.id)` from that trusted
+identity—not from a browser-supplied ID.
 
 Generate the contract, then consume the store in a registered React component:
 
-```tsx title="frontend/src/pages/Dashboard.tsx"
+```tsx title="frontend/src/flux-pages/dashboard/index.tsx"
 'use client';
 
-import { useResource } from '@fluxfast/next/client';
-import type { ResourceTypes } from '../.fluxfast/types.generated';
+import { useResource } from '@fluxfast/next';
+import { resourceKeys } from '@/.fluxfast/types.generated';
 
 export default function Dashboard() {
-  const viewer = useResource<ResourceTypes['viewer']>('viewer');
+  const viewer = useResource(resourceKeys.viewer);
 
   return (
     <main>
-      <p>Signed in as {viewer.data.name}</p>
-      <strong>{viewer.data.plan} plan</strong>
+      <p>Demo viewer: {viewer.name}</p>
+      <strong>{viewer.plan} plan</strong>
     </main>
   );
 }
@@ -117,6 +126,10 @@ export default function Dashboard() {
 fluxfast types backend.main:app --frontend frontend
 fluxfast dev backend.main:app --frontend frontend
 ```
+
+After completing the [initial setup](./getting-started/), opening `/dashboard` displays
+**Demo viewer: Ada** and **pro plan**. `useResource` returns the resource value directly; use
+`useResourceState` when you also need status, stale, and error metadata.
 
 <Aside type="tip" title="No frontend backend URL is required">
   During development and production, the browser talks to the Next.js origin. The managed adapter
@@ -153,6 +166,11 @@ fluxfast dev backend.main:app --frontend frontend
     title="I want a complete reference application"
     description="Compare service-repository, modular feature, clean architecture, and MVC e-commerce implementations."
     href="./examples/"
+  />
+  <LinkCard
+    title="I want API code and expected results"
+    description="Follow a runnable page, resource, form, deferred, and live workflow with the actual request and response shapes."
+    href="./api-walkthrough/"
   />
   <LinkCard
     title="I need reactive data"

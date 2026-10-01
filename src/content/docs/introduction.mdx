@@ -53,25 +53,27 @@ without replacing the entire page payload.
 At a high level, a FluxFast response identifies the component and the current state of each
 resource:
 
-```json title="Conceptual page envelope"
+```json title="Example page envelope (version is illustrative)"
 {
   "protocol": "fluxfast/1",
   "page": {
-    "component": "Dashboard",
+    "component": "dashboard/index",
     "url": "/dashboard"
   },
   "resources": {
     "viewer": {
-      "version": 3,
-      "status": "ready",
-      "data": { "name": "Ada", "plan": "pro" }
+      "version": "opaque-resource-version",
+      "value": { "name": "Ada", "plan": "pro" }
     }
   }
 }
 ```
 
-You normally do not construct this object yourself. `flux.render(...)` builds it, the adapter checks
-the protocol, and the browser initializes or updates the resource stores.
+You normally do not construct this object yourself. Return a `Page(...)` from a `@flux.page(...)`
+handler; FluxFast resolves its resources and builds the envelope. The adapter checks the protocol,
+and the browser initializes or updates the resource stores. Versions are opaque strings, not
+counters. The wire record uses `value`; React's `useResource(key)` returns that value directly.
+Loading/error status belongs to `useResourceState(key)`, not to this wire record.
 
 ## Pages and resources are different
 
@@ -81,24 +83,37 @@ the protocol, and the browser initializes or updates the resource stores.
     for this URL?**
 
     ```python
-    @flux.page('/projects/{project_id}', component='ProjectPage')
-    async def project_page(request, project_id: int):
-        return flux.render(resources=[viewer, project])
+    @flux.page('/projects/{project_id}', name='project')
+    async def project_page(project_id: int) -> Page:
+        return Page(
+            component='projects/show',
+            resources=[resource(PROJECT, lambda: load_project(project_id))],
+        )
     ```
+
+    Here `Page` and `resource` come from `fluxfast`; `PROJECT` is a declared resource contract and
+    `load_project` is your application's loader. In a protected route, use FastAPI dependencies to
+    authorize the project before constructing its resources.
   </TabItem>
   <TabItem label="Resource">
     A resource is typed application data with an independent lifecycle. It answers: **what data does
     the interface need, and how may it be reused or updated?**
 
     ```python
-    project = flux.define_resource(
-        'project',
-        Project,
-        loader=load_project,
-        scope='tenant',
-        cache_ttl=30,
+    PROJECT = flux.define_resource('project', Project)
+    project = resource(
+        PROJECT,
+        lambda: load_project(project_id),
+        scope=scope.custom('project', project_id),
+        ttl=30,
     )
     ```
+
+    `Project`, `load_project`, and the authorized `project_id` are application-owned values;
+    `resource` and `scope` come from `fluxfast`. `define_resource` declares the value's type once.
+    `resource` supplies the loader and lifecycle for a particular request. A custom scope partitions
+    cached values; it does not grant project access. Add a user/tenant-specific identity if the
+    serialized value differs between authorized viewers.
   </TabItem>
 </Tabs>
 
@@ -131,17 +146,19 @@ one origin:
 
 ```text
 Browser
-   │  http://localhost:8000 (development)
+   │  http://127.0.0.1:3000 (development)
    │  https://app.example.com (production)
    ▼
-FastAPI + FluxFast transport
+Public Next.js shell + FluxFast handlers
    │  private loopback traffic
    ▼
-Managed Next.js process
+Private FastAPI application
 ```
 
 That topology removes browser-side backend URL configuration and avoids CORS between the shell and
-the transport endpoints. It also gives health checks and shutdown a single lifecycle owner.
+the transport endpoints. The Python CLI supervises both processes; Next.js exposes the browser port
+and forwards transport requests to private FastAPI. It also gives health checks and shutdown a
+single lifecycle owner. You still have two internal processes, not two public origins.
 
 ## When FluxFast is a good fit
 
@@ -189,6 +206,7 @@ for the full provider example, panel semantics, safety limits, and troubleshooti
 
 <CardGrid>
   <LinkCard title="Build the tutorial" href="/FluxFast-Docs/getting-started/" description="Create a complete page, shared resource, mutation, generated contract, and production build." />
+  <LinkCard title="Follow the APIs end to end" href="/FluxFast-Docs/api-walkthrough/" description="Read runnable code, actual envelope shapes, and the expected UI behavior for each operation." />
   <LinkCard title="Inspect the architecture" href="/FluxFast-Docs/architecture/" description="Follow blocking, deferred, navigation, live, and production flows in detail." />
   <LinkCard title="Use development DevTools" href="/FluxFast-Docs/devtools/" description="Inspect correlated runtime behavior without exposing application data or changing production semantics." />
 </CardGrid>
