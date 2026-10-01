@@ -103,6 +103,7 @@ export default defineConfig({
 						{ label: 'Stable APIs', slug: 'stable-apis' },
 						{ label: 'Advanced Stable APIs', slug: 'advanced-stable-apis' },
 						{ label: 'Advanced API walkthrough', slug: 'advanced-api-walkthrough' },
+						{ label: 'Server adapter lab (unreleased)', slug: 'server-api-walkthrough' },
 						{ label: 'Python API', slug: 'python-api' },
 						{ label: '@fluxfast/core', slug: 'core-api' },
 						{ label: '@fluxfast/next', slug: 'next-api' },

@@ -1,0 +1,295 @@
+---
+title: Server adapter API walkthrough (unreleased)
+description: Test the unreleased framework-neutral server helpers against a real FastAPI backend, with initial-page, proxy, validation, missing-page, and failure outputs.
+---
+
+import { Aside } from '@astrojs/starlight/components';
+
+This page explains the **unreleased v1.2 server foundation** on FluxFast's `main` branch.
+It is for adapter authors and maintainers, not a replacement setup for ordinary applications.
+The examples show what goes into each server API, what comes back, and which responsibilities
+remain with FastAPI and the rendering host.
+
+<Aside type="caution" title="Not available in published 1.1.0 packages">
+  Installing `@fluxfast/core@1.1.0` does not provide `@fluxfast/core/server`. The lab below uses
+  a built source checkout deliberately. Do not patch `node_modules`, import package internals
+  in an application, or replace your generated Next.js handlers. Published applications should
+  continue using `@fluxfast/next/server` and the [normal API walkthrough](/FluxFast-Docs/api-walkthrough/).
+</Aside>
+
+## What are these helpers for?
+
+There are two different server HTTP boundaries:
+
+1. **Initial rendering:** obtain and validate a page envelope before a host renders it. A missing
+   page becomes a result that the host can translate into its own real 404.
+2. **Browser transport:** forward a same-origin page, mutation, deferred, or live request to the
+   private FastAPI backend. Return its response without parsing or buffering a live stream.
+
+The shared helpers implement HTTP behavior without importing React, Next.js, or Node modules.
+They do not define application routes, choose components, authorize users, or render HTML.
+FastAPI owns routing and authorization; the host owns rendering, component allowlisting,
+hydration, and its request lifecycle.
+
+| API | Input | Output | Use it when |
+| --- | --- | --- | --- |
+| `selectFluxForwardHeaders` | Incoming headers and optional extra names | A new, sanitized SSR allowlist | Deriving initial-page credentials and locale from a host request. |
+| `fetchFluxInitialPage` | Explicit backend URL, encoded path/query, selected headers, and optional fetch/diagnostics/redirect settings | `{ type: "page", envelope, development? }` or `{ type: "not-found" }` | Obtaining the initial validated envelope for server rendering. |
+| `createFluxTransportProxy` | Explicit backend URL and optional fetch implementation | An async `(request, pathname) => Response` handler | Forwarding protocol requests, mutations, and streaming responses. |
+| `removeFluxHopByHopHeaders` | Request or response headers | A new collection containing end-to-end headers | Implementing another HTTP boundary that must discard per-hop fields. |
+
+On a narrow screen, scroll the table horizontally. The helpers use standard Web API types:
+`Headers`, `Request`, `Response`, and `fetch`.
+
+## 1. Start the teaching backend
+
+Use the complete `api.py` and isolated Python environment from
+[steps 1–2 of the Advanced API walkthrough](/FluxFast-Docs/advanced-api-walkthrough/#1-prepare-an-isolated-lab).
+That published-1.1 backend exposes:
+
+- `GET /stats`, selecting `stats/index` and returning a public `stats` resource;
+- `POST /stats/increment`, accepting `{ "amount": 1 }` through `{ "amount": 10 }`;
+- no `/missing` page.
+
+Start a **fresh** backend in that lab directory so its process-local count is zero:
+
+```bash
+source .venv/bin/activate
+python -m uvicorn api:app --host 127.0.0.1 --port 8000
+```
+
+This is a public, single-process teaching backend. It is not a persistence, authentication,
+or production deployment template. Using it also demonstrates that the new server helpers
+still consume the existing `fluxfast/1` protocol; the protocol is not renamed to match a package version.
+
+## 2. Build the development Core package
+
+In another terminal, use Node.js 22 or 24 and a separate FluxFast source checkout:
+
+```bash
+git clone https://github.com/El37628/FluxFast.git fluxfast-source
+cd fluxfast-source
+corepack pnpm install --frozen-lockfile
+corepack pnpm --filter @fluxfast/core build
+```
+
+The repository build uses pnpm; that does not require your consuming application to use pnpm.
+Create `server-lab.mjs` **at this checkout's root**, using the complete example below.
+Its relative import targets the local build only because the new entry point has not been
+published. The intended package import for a release that provides this entry point is:
+
+```ts
+import { fetchFluxInitialPage, createFluxTransportProxy } from "@fluxfast/core/server";
+```
+
+## 3. Call the APIs and inspect the results
+
+```js title="server-lab.mjs"
+import {
+  createFluxTransportProxy,
+  fetchFluxInitialPage,
+  removeFluxHopByHopHeaders,
+  selectFluxForwardHeaders,
+} from "./packages/core/dist/esm/server/index.js";
+
+const backendUrl = process.env.FLUXFAST_LAB_URL ?? "http://127.0.0.1:8000";
+const print = (label, value) => console.log(label, JSON.stringify(value));
+
+// Illustrative headers only: never print real credentials or trust a tenant
+// header merely because the forwarding allowlist includes it.
+const incomingHeaders = new Headers({
+  "accept-language": "en",
+  cookie: "session=example",
+  "x-tenant": "example-tenant",
+  "x-unrelated": "discard",
+  connection: "keep-alive, x-hop",
+  "x-hop": "discard",
+});
+const forwarded = selectFluxForwardHeaders(incomingHeaders, ["X-Tenant", "X-Hop"]);
+print("forwardedHeaderNames", [...forwarded.keys()].sort());
+
+const initial = await fetchFluxInitialPage({
+  backendUrl,
+  path: "/stats?view=compact",
+  headers: forwarded,
+  diagnostics: false,
+});
+if (initial.type !== "page") throw new Error("Expected the stats page");
+print("initial", {
+  type: initial.type,
+  component: initial.envelope.page.component,
+  value: initial.envelope.resources.stats.value,
+});
+
+const missing = await fetchFluxInitialPage({ backendUrl, path: "/missing" });
+print("initialMissing", missing);
+
+const proxy = createFluxTransportProxy({ backendUrl });
+const protocolHeaders = {
+  Accept: "application/vnd.fluxfast+json",
+  "X-FluxFast": "1",
+  "X-FluxFast-Protocol": "1",
+};
+
+// The host extracts /stats from its own /transport/stats handler.
+// The incoming Request retains the original query; do not include it in path.
+const pageResponse = await proxy(new Request(
+  "https://app.example/transport/stats?view=compact",
+  { headers: protocolHeaders },
+), "/stats");
+const pageEnvelope = await pageResponse.json();
+print("proxiedPage", {
+  status: pageResponse.status,
+  component: pageEnvelope.page.component,
+  value: pageEnvelope.resources.stats.value,
+});
+
+const increment = amount => proxy(new Request(
+  "https://app.example/transport/stats/increment",
+  {
+    method: "POST",
+    headers: { ...protocolHeaders, "Content-Type": "application/json" },
+    body: JSON.stringify({ amount }),
+  },
+), "/stats/increment");
+
+const mutationResponse = await increment(2);
+const mutationEnvelope = await mutationResponse.json();
+print("proxiedMutation", {
+  status: mutationResponse.status,
+  patches: mutationEnvelope.mutation.patches.stats,
+  invalidate: mutationEnvelope.mutation.invalidate,
+});
+
+const invalidResponse = await increment(0);
+const invalidEnvelope = await invalidResponse.json();
+print("invalidMutation", {
+  status: invalidResponse.status,
+  type: invalidEnvelope.error.type,
+  fields: Object.keys(invalidEnvelope.error.details),
+});
+
+// Protocol marker and path rejection happen before contacting the backend.
+const unmarked = await proxy(new Request("https://app.example/transport/stats"), "/stats");
+print("unmarked", { status: unmarked.status, body: await unmarked.text() });
+const invalidPath = await proxy(new Request(
+  "https://app.example/transport/stats", { headers: protocolHeaders },
+), "/../stats");
+print("invalidPath", { status: invalidPath.status, body: await invalidPath.json() });
+
+const clean = removeFluxHopByHopHeaders({
+  "content-type": "text/event-stream",
+  "cache-control": "no-cache, no-transform",
+  connection: "keep-alive, x-private-hop",
+  "x-private-hop": "discard",
+  "transfer-encoding": "chunked",
+});
+print("streamHeaders", Object.fromEntries(clean));
+```
+
+Run it from the source checkout's root:
+
+```bash
+node server-lab.mjs
+```
+
+Against a freshly started teaching backend, the expected output is:
+
+```text title="Expected API results"
+forwardedHeaderNames ["accept-language","cookie","x-tenant"]
+initial {"type":"page","component":"stats/index","value":{"count":0}}
+initialMissing {"type":"not-found"}
+proxiedPage {"status":200,"component":"stats/index","value":{"count":0}}
+proxiedMutation {"status":200,"patches":[{"op":"merge-object","value":{"count":2}}],"invalidate":["stats"]}
+invalidMutation {"status":422,"type":"ValidationError","fields":["amount"]}
+unmarked {"status":404,"body":""}
+invalidPath {"status":400,"body":{"error":{"code":"invalid_transport_path","message":"Invalid FluxFast path"}}}
+streamHeaders {"cache-control":"no-cache, no-transform","content-type":"text/event-stream"}
+```
+
+These results were verified against [source commit `abee823`](https://github.com/El37628/FluxFast/commit/abee823838edde22f669107aef5902eb591cd8c8)
+with the published Python `fluxfast==1.1.0` backend. They do not imply that a v1.2 package has been released.
+
+Restart the teaching backend before reproducing the exact counter values. If you chose another
+loopback port for Uvicorn, set the same address for this lab:
+
+```bash
+FLUXFAST_LAB_URL=http://127.0.0.1:8001 node server-lab.mjs
+```
+
+## 4. Interpret the results correctly
+
+### Initial-page fetching is not rendering
+
+`fetchFluxInitialPage` returns a **validated envelope**, not HTML or a React component.
+The host resolves `stats/index` against its allowlisted registry and renders it with that envelope.
+Use the **same envelope** to seed the browser runtime; a second hydration fetch can produce
+inconsistent initial data.
+
+The helper's `not-found` result is not itself an HTTP response. The host must turn it into a real
+404 using its own rendering mechanism. In Next.js that remains the adapter's `notFound()` boundary.
+Other HTTP errors can reject with `TransportError`; malformed envelopes can reject with protocol
+errors. A network failure can reject with the native fetch error. Do not treat every exception
+as a missing page or assume it always contains an HTTP status.
+
+### SSR allowlisting and proxy sanitation are different
+
+Initial SSR forwarding defaults to cookie, authorization, accept-language, and user-agent.
+The optional extra names add to that list. `x-unrelated` is omitted, and `x-hop` remains omitted
+even when explicitly added because `Connection` nominated it as a per-hop field.
+
+A protocol proxy instead preserves end-to-end fields such as authorization, cookies, CSRF,
+FluxFast capabilities, and live headers. It removes per-hop fields rather than applying the SSR
+allowlist. FastAPI still authenticates and authorizes every request. A forwarded tenant header
+is not proof of tenant access, and the exact `X-FluxFast: 1` marker is not authentication or CSRF protection.
+
+### A transport proxy does not apply patches
+
+The successful mutation response contains a patch and invalidation, but the proxy does not own
+client stores. The browser's existing `FluxRouter` applies the mutation envelope and performs
+canonical resource revalidation. The invalid request still reaches FastAPI, which returns 422;
+the proxy preserves that status and response body rather than creating a new error contract.
+
+The `/transport` prefix in this lab is illustrative host routing, not a required FluxFast route
+name or an additional supported adapter. Only the explicit `/stats` pathname is forwarded;
+`?view=compact` comes from the original `Request`. Pass an encoded pathname such as `/rooms/a%2Fb`
+for an identifier containing a slash. Do not concatenate an untrusted URL into the backend address.
+
+### Streaming responses must remain streams
+
+Calling `json()` is appropriate for this lab's finite page and mutation responses. **Do not call
+`json()` or `text()` on an open live response.** Return the proxy's `Response` directly from your
+host handler so events arrive incrementally and downstream cancellation reaches the upstream stream.
+
+The proxy uses the original request signal, manual redirects, and `cache: "no-store"`.
+It never follows an upstream redirect with credentials. Initial-page fetching has a separate,
+bounded same-backend-origin redirect policy. Sanitizing stream headers alone does not make an
+HTTP server support streaming; the host and any reverse proxy must preserve flushes and cancellation.
+
+### Configuration and diagnostics belong to the host
+
+Core does not read `NODE_ENV` or a backend environment variable. Supply the private backend address
+explicitly. The Next.js wrapper continues to resolve its supervisor-provided address itself.
+Never put that private address in browser code.
+
+Initial diagnostics are disabled by default. Set `diagnostics: true` only from the host's trusted
+development configuration, not a caller's query or header. Safe development metadata remains
+separate from `PageEnvelope` and must not become application data or a production inspector.
+
+Invalid backend configuration or an upstream proxy fetch failure produces HTTP 503 with:
+
+```json
+{"error":{"code":"transport_unavailable","message":"FluxFast backend is unavailable"}}
+```
+
+That response does not expose a private address, credentials, or native exception text.
+An invalid pathname returns the 400 shown in the lab, and a missing protocol marker returns an
+empty 404. None of those cases grants access to a backend route.
+
+## Continue with the references
+
+- [Core server API](/FluxFast-Docs/core-api/#server-adapter-primitives-unreleased-v12) documents
+  every option, type, path restriction, redirect policy, header rule, and error boundary.
+- [Next.js adapter](/FluxFast-Docs/nextjs-adapter/) explains the unchanged supported host integration.
+- [Architecture](/FluxFast-Docs/architecture/) explains which layer owns each lifecycle.
+- [Version guide](/FluxFast-Docs/version-guide/) distinguishes available releases from development work.
