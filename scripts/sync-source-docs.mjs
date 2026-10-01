@@ -12,6 +12,7 @@ const descriptions = {
   'architecture.md': 'Understand how FastAPI, the resource graph, browser stores, and the Next.js shell divide responsibility.',
   'benchmarking.md': 'Reproduce FluxFast performance measurements and interpret their correctness gates.',
   'caching.md': 'Configure server and browser caching without leaking data across users or tenants.',
+  'codegen-api.md': 'Compile backend-owned schemas, inspect validator diagnostics, and generate or check artifacts with the unreleased framework-neutral Codegen package.',
   'containers.md': 'Package and run FluxFast with Docker or rootless Podman.',
   'contracts.md': 'Declare reusable application types and generate TypeScript from Python.',
   'core-api.md': 'Public API and stability classification for @fluxfast/core.',

@@ -26,7 +26,7 @@ On narrow screens, scroll the table horizontally to compare all three columns.
 | [1.0.0](/FluxFast-Docs/releases/v1-0-0/) | Published stable | The stable FastAPI, Core, and Next.js contracts, typed generation, forms, deferred/live resources, and managed production runtime. |
 | [1.0.1](/FluxFast-Docs/releases/v1-0-1/) | Published stable | Routable generated Next.js handlers and project-local agent integration knowledge. |
 | [1.1.0](/FluxFast-Docs/releases/v1-1-0/) | Latest published stable documented here | Optional development DevTools and bounded runtime/server observations. Existing application APIs remain compatible. |
-| Unreleased v1.2 foundation | Development material only | Framework-neutral initial-page fetching, header helpers, and an HTTP/streaming transport proxy at `@fluxfast/core/server`. The development Next.js adapter delegates these boundaries; installed v1.1 applications keep their existing setup. No additional frontend adapter is announced. |
+| Unreleased v1.2 foundation | Development material only | Framework-neutral initial-page fetching, header helpers, and an HTTP/streaming transport proxy at `@fluxfast/core/server`, plus Node.js schema compilation and artifact generation at `@fluxfast/codegen`. The development Next.js adapter delegates the shared work; installed v1.1 applications keep their existing setup. No additional frontend adapter is announced. |
 
 The [Core reference](/FluxFast-Docs/core-api/#server-adapter-primitives-unreleased-v12) explicitly
 labels its new server helpers. Until a release publishes them, ordinary applications should keep
@@ -37,6 +37,12 @@ Adapter authors can use the [Server adapter API walkthrough](/FluxFast-Docs/serv
 to test the source-built development helpers against a real backend. It includes API calls and
 expected page, mutation, validation, missing-page, and path-rejection results. It is not an upgrade
 instruction for a published v1.1 application.
+
+The [Codegen API lab](/FluxFast-Docs/codegen-api-walkthrough/) shows the new offline compiler
+boundary with real exported backend schema, exact API results, unsupported-validator diagnostics,
+and read-only drift checks. `@fluxfast/codegen` is also **unreleased**: its source workspace currently
+uses `1.1.0` for synchronization, but there is no published `@fluxfast/codegen@1.1.0` package.
+Use the source-build instructions in that lab rather than an npm installation command.
 
 ## Install matched v1.1 packages
 
