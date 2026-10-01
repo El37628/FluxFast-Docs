@@ -40,7 +40,9 @@ instruction for a published v1.1 application.
 
 The [Codegen API lab](/FluxFast-Docs/codegen-api-walkthrough/) shows the new offline compiler
 boundary with real exported backend schema, exact API results, unsupported-validator diagnostics,
-and read-only drift checks. `@fluxfast/codegen` is also **unreleased**: its source workspace currently
+and read-only drift checks, including an explicit runtime target and a read-only page registry
+scanner. The Next wrapper selects the existing Next target for applications automatically.
+`@fluxfast/codegen` is also **unreleased**: its source workspace currently
 uses `1.1.0` for synchronization, but there is no published `@fluxfast/codegen@1.1.0` package.
 Use the source-build instructions in that lab rather than an npm installation command.
 
