@@ -1,0 +1,354 @@
+---
+title: Codegen API walkthrough (unreleased)
+description: Compile an actual FastAPI schema, inspect generated source and validation diagnostics, and generate or check six artifacts with exact API inputs and outputs.
+---
+
+import { Aside } from '@astrojs/starlight/components';
+
+This lab explains the **unreleased v1.2 Codegen foundation** on FluxFast's `main` branch.
+It is for adapter authors, build-tool authors, and maintainers. Ordinary applications should keep
+using `fluxfast types APP`, `fluxfast generate`, and the supported Next.js setup.
+
+<Aside type="caution" title="Not an npm package available in v1.1.0">
+  `@fluxfast/codegen` is not included in the published v1.1.0 release. A synchronized `1.1.0`
+  development version in the source checkout is not a publication notice. Build the source below;
+  do not run `npm install @fluxfast/codegen@1.1.0` or copy private compiler files into an application.
+</Aside>
+
+## What does Codegen do?
+
+Codegen converts the **developer schema exported by FastAPI** into deterministic TypeScript source
+and native validation-plan data. It can also safely persist generated artifacts or compare their
+expected bytes with files already on disk. It does not fetch page envelopes, render an interface,
+run a mutation, or authorize a user.
+
+The current extraction keeps Next.js responsible for scanning and rendering its page registry.
+Codegen accepts that adapter-prepared registry as an explicit input. This lab uses a small teaching
+registry to demonstrate the lower-level contract; it is not another supported frontend adapter.
+
+| API group | Input | Output | Why you would use it |
+| --- | --- | --- | --- |
+| Manifest parsing | Exported JSON text, or an already-parsed unknown value | A validated `FluxFastSchemaManifest`, or a precise error | Reject malformed or unsupported schema before compiling anything. |
+| Types, routes, and mutations | A validated backend manifest | TypeScript **source strings** | Build typed resource values and helpers for routes already owned by FastAPI. |
+| Validator compilation | The manifest and an unsupported-contract policy | Source, supported contract names, and diagnostics; strict compilation can throw | Keep browser validation explicit rather than silently weakening unsupported contracts. |
+| Native validation plan | One supported JSON Schema object | Plan **data**, such as `{ root: { kind: "string" } }` | Prepare a plan for Core's separate validation runtime. |
+| Project generation | Schema input, output directory, and adapter-prepared registry | Generated paths and validator diagnostics | Persist the six-artifact set with safe replacement behavior. |
+| Project checking | The same authoritative inputs | `current`, `checkedFiles`, and `staleFiles` | Detect drift in CI without writing or creating directories. |
+
+On small screens, scroll the table horizontally. These are Node.js build-time APIs, not browser
+imports. The compiler does not need React or Next.js installed; consuming its generated validators
+or mutation helpers can still require `@fluxfast/core` at runtime.
+
+## 1. Export a real backend schema
+
+Use the complete `api.py` and isolated Python environment from
+[steps 1–2 of the Advanced API walkthrough](/FluxFast-Docs/advanced-api-walkthrough/#1-prepare-an-isolated-lab).
+That teaching application has a `stats` resource, a `/stats` page, and an `increment_stats` mutation
+whose `amount` must be an integer from 1 through 10.
+
+From its `fluxfast-api-lab/` directory, activate the environment and export the schema:
+
+```bash
+source .venv/bin/activate
+fluxfast schema api:app --output backend-schema.json
+```
+
+The schema exporter imports the application; no Uvicorn process or browser is needed for this lab.
+The teaching backend uses the published Python `fluxfast==1.1.0` package. Its exported
+`fluxfast-schema/2` input is already understood by the new compiler; a new compiler package does
+not require renaming the schema or the `fluxfast/1` wire protocol.
+
+Do not hand-write the manifest or edit its fingerprint in a real project. Backend declarations
+are the authoritative input; use schema export and regeneration after changing them.
+
+## 2. Build the development compiler
+
+Use Node.js 22 or 24. In the directory containing `fluxfast-api-lab/`, create a separate checkout:
+
+```bash
+git clone https://github.com/El37628/FluxFast.git fluxfast-source
+cd fluxfast-source
+corepack pnpm install --frozen-lockfile
+corepack pnpm --filter @fluxfast/core build
+corepack pnpm --filter @fluxfast/codegen build
+```
+
+The source repository uses pnpm; a consuming application can still use npm. Core builds first so
+the compiler can resolve its public **type-only** dependency. Codegen itself does not execute Core
+while compiling schema. The intended package import, once a release publishes it, is:
+
+```ts
+import { parseFluxFastSchemaManifest, generateFluxFastProject } from "@fluxfast/codegen";
+```
+
+For this unreleased lab only, the complete script below imports the local build relative to the
+checkout's root. Public package consumers should use the root package export, not private deep imports.
+
+## 3. Call the APIs and read their results
+
+Create `codegen-lab.mjs` **at the source checkout's root**:
+
+```js title="codegen-lab.mjs"
+import fs from "node:fs";
+import os from "node:os";
+import path from "node:path";
+import {
+  checkFluxFastProject,
+  compileFluxFastMutations,
+  compileFluxFastPageRoutes,
+  compileFluxFastResourceTypes,
+  compileFluxFastValidators,
+  compileFluxFastValidatorsWithDiagnostics,
+  compileJsonSchemaToValidationPlan,
+  generateFluxFastProject,
+  parseFluxFastSchemaManifest,
+  SchemaManifestValidationError,
+  ValidatorCompilationError,
+} from "./packages/codegen/dist/esm/index.js";
+
+const print = (label, value) => console.log(label, JSON.stringify(value));
+const schemaPath = path.resolve(process.argv[2] ?? "../fluxfast-api-lab/backend-schema.json");
+const schemaContent = fs.readFileSync(schemaPath, "utf8");
+const manifest = parseFluxFastSchemaManifest(schemaContent);
+print("manifest", {
+  schema: manifest.schema,
+  producer: manifest.producer,
+  resources: Object.keys(manifest.resources),
+  pages: manifest.pages.map(page => page.name),
+  mutations: manifest.mutations.map(mutation => mutation.name),
+});
+
+const types = compileFluxFastResourceTypes(manifest);
+const routes = compileFluxFastPageRoutes(manifest);
+const mutations = compileFluxFastMutations(manifest);
+print("compiled", { types: typeof types, routes: typeof routes, mutations: typeof mutations });
+
+const validation = compileFluxFastValidatorsWithDiagnostics(manifest);
+print("validators", { contracts: validation.contracts, diagnostics: validation.diagnostics });
+print("nativePlan", compileJsonSchemaToValidationPlan({ type: "string", minLength: 2 }));
+
+try {
+  parseFluxFastSchemaManifest("{");
+  throw new Error("Expected malformed JSON to fail");
+} catch (error) {
+  if (!(error instanceof SchemaManifestValidationError)) throw error;
+  print("invalidManifest", { name: error.name, path: error.path });
+}
+
+// A deliberately modified in-memory copy, only to demonstrate diagnostics.
+// Do not persist this copy as an exported backend manifest.
+const unsupportedManifest = {
+  ...manifest,
+  types: {
+    ...manifest.types,
+    CustomInput: {
+      mode: "validation",
+      schema: { type: "string", format: "application-code" },
+    },
+  },
+};
+const report = compileFluxFastValidatorsWithDiagnostics(unsupportedManifest);
+print("unsupported", {
+  contracts: report.contracts,
+  diagnostics: report.diagnostics.map(({ contract, path, keyword }) => ({ contract, path, keyword })),
+});
+try {
+  compileFluxFastValidators(unsupportedManifest);
+  throw new Error("Expected strict compilation to fail");
+} catch (error) {
+  if (!(error instanceof ValidatorCompilationError)) throw error;
+  print("strictFailure", { name: error.name, keyword: error.keyword });
+}
+
+// A fresh scratch project, never an application's existing generated directory.
+const scratch = fs.mkdtempSync(path.join(os.tmpdir(), "fluxfast-codegen-lab-"));
+const pagesDir = path.join(scratch, "src/pages");
+const generatedDir = path.join(scratch, "src/.fluxfast");
+fs.mkdirSync(path.join(pagesDir, "stats"), { recursive: true });
+fs.writeFileSync(path.join(pagesDir, "stats/index.js"),
+  "export default function Stats() { return null; }\n");
+const registry = {
+  pagesDir,
+  outputFile: path.join(generatedDir, "pages.generated.ts"),
+  files: ["stats/index.js"],
+  identifiers: ["stats/index"],
+  content: 'export const pages = { "stats/index": { load: () => import("../pages/stats/index.js") } };\n',
+};
+const options = { registry, generatedDir, schemaContent, log: false };
+
+const missing = checkFluxFastProject(options);
+print("beforeGeneration", {
+  current: missing.current,
+  missingCount: missing.staleFiles.length,
+  outputDirectoryCreated: fs.existsSync(generatedDir),
+});
+
+const written = generateFluxFastProject(options);
+print("generated", {
+  files: fs.readdirSync(generatedDir).sort(),
+  generatedFileCount: written.generatedFiles.length,
+  validatorContracts: written.generatedValidators,
+});
+const current = checkFluxFastProject(options);
+print("afterGeneration", { current: current.current, staleFiles: current.staleFiles });
+
+// Change the adapter's authoritative registry input, not a generated output file.
+const revised = {
+  ...options,
+  registry: { ...registry, content: registry.content + "// Adapter-source revision 2.\n" },
+};
+const beforeCheck = fs.readFileSync(registry.outputFile, "utf8");
+const drift = checkFluxFastProject(revised);
+print("drift", {
+  current: drift.current,
+  staleFiles: drift.staleFiles.map(file => path.basename(file)),
+  outputUnchanged: fs.readFileSync(registry.outputFile, "utf8") === beforeCheck,
+});
+generateFluxFastProject(revised);
+print("afterRegeneration", { current: checkFluxFastProject(revised).current });
+console.error(`Scratch artifacts: ${generatedDir}`);
+```
+
+Run it from that checkout's root:
+
+```bash
+node codegen-lab.mjs ../fluxfast-api-lab/backend-schema.json
+```
+
+The expected standard output is:
+
+```text title="Expected API results"
+manifest {"schema":"fluxfast-schema/2","producer":"1.1.0","resources":["stats"],"pages":["stats"],"mutations":["increment_stats"]}
+compiled {"types":"string","routes":"string","mutations":"string"}
+validators {"contracts":["IncrementStatsBody","StatsResource"],"diagnostics":[]}
+nativePlan {"root":{"kind":"string","minLength":2}}
+invalidManifest {"name":"SchemaManifestValidationError","path":"$"}
+unsupported {"contracts":["IncrementStatsBody","StatsResource"],"diagnostics":[{"contract":"CustomInput","path":"$.types.CustomInput.schema.format","keyword":"format"}]}
+strictFailure {"name":"ValidatorCompilationError","keyword":"format"}
+beforeGeneration {"current":false,"missingCount":6,"outputDirectoryCreated":false}
+generated {"files":["mutations.generated.ts","pages.generated.ts","routes.generated.ts","schema.generated.json","types.generated.ts","validators.generated.ts"],"generatedFileCount":5,"validatorContracts":["IncrementStatsBody","StatsResource"]}
+afterGeneration {"current":true,"staleFiles":[]}
+drift {"current":false,"staleFiles":["pages.generated.ts"],"outputUnchanged":true}
+afterRegeneration {"current":true}
+```
+
+Standard error prints the scratch directory, which varies by machine and run. Open that directory
+to inspect the generated source. This lab does not modify your application's `.fluxfast` files.
+
+These results were verified against [source commit `77e6641`](https://github.com/El37628/FluxFast/commit/77e664148dff8eef202144ba20f3d85ba6fc70a2)
+using schema exported by the published Python `fluxfast==1.1.0` package. For an exact reproduction
+after `main` changes, check out that commit in the separate teaching checkout before building.
+
+## 4. Understand the generated code
+
+### A compiler returns source, not a runtime value
+
+`compileFluxFastResourceTypes(manifest)` returns the text defining `StatsResource` and
+`IncrementStatsBody`. It does not load the current counter. Similarly,
+`compileFluxFastPageRoutes(manifest)` returns a TypeScript file; calling the compiler does not
+navigate to `/stats`. After generation and normal application compilation, the generated APIs
+can be used like this:
+
+```ts
+import { routes } from "./.fluxfast/routes.generated";
+import { mutations } from "./.fluxfast/mutations.generated";
+import { IncrementStatsBodyValidator } from "./.fluxfast/validators.generated";
+
+console.log(routes.stats());
+// /stats
+console.log(IncrementStatsBodyValidator.validate({ amount: 0 }).valid);
+// false
+console.log(IncrementStatsBodyValidator.validate({ amount: 2 }).valid);
+// true
+
+// `router` is the application's existing FluxRouter, not a compiler instance.
+// This call reaches FastAPI; the compiler itself never submits requests.
+await mutations.incrementStats(router, { body: { amount: 2 } });
+```
+
+This fragment belongs in a real application's typed integration, not in the terminal lab's
+`.mjs` file. The mutation's response depends on actual backend state and permissions.
+
+### Plan compilation and value validation are separate operations
+
+`compileJsonSchemaToValidationPlan({ type: "string", minLength: 2 })` returns the plan shown
+above. It does **not** say whether `"a"` is valid. Core's `createValidator` or a generated validator
+evaluates a value later. Browser validation helps users, but FastAPI must still validate every
+submitted body, regardless of what the browser checked.
+
+### Reporting an unsupported contract does not weaken its validator
+
+The demonstration `CustomInput` uses an unsupported format. Reporting compilation omits that
+**whole contract's validator**, keeps the supported `IncrementStatsBody` and `StatsResource`
+validators, and returns a diagnostic with the exact contract, path, keyword, and message.
+Its TypeScript type can still be generated. No fallback validator quietly ignores the format.
+
+`compileFluxFastValidators` is strict by default and throws instead. Prefer strict policy when
+your build must require every contract to have a browser validator. If your tool deliberately
+uses reporting policy, surface diagnostics to developers and handle an omitted validator explicitly.
+Project generation reports these diagnostics in `validatorDiagnostics`; a successful write does
+not mean every backend rule has a generated browser equivalent.
+
+### There are six files but five `generatedFiles`
+
+With `schemaContent` supplied, the project writes the registry, types, validators, routes,
+mutations, and persisted schema. `generatedFiles` reports the **five TypeScript artifacts**;
+`schemaFile` reports the persisted JSON separately. `registryPath` also exposes the registry
+path directly. The check result includes the persisted schema in `checkedFiles` when supplied
+as authoritative `schemaContent`, which is why the first check reports six missing files.
+
+Without schema input and without an existing selected schema file, only the registry is generated.
+If `schemaContent` is omitted, an existing `schemaFile` can be read as the schema input; it is not
+rewritten as a newly supplied manifest. Supply exported `schemaContent` when CI must also compare
+the persisted schema's exact bytes.
+
+### Drift checking is read-only
+
+The `drift` result comes from a change to the adapter's registry input. The test leaves the file
+on disk unchanged, then regenerates through `generateFluxFastProject`. The same pattern applies
+to changed backend declarations: export a new schema, check against those inputs, then regenerate.
+Do not repair a generated type, registry, validator, or route helper by hand.
+
+For a CI tool, map the result to an exit status yourself:
+
+```js
+const status = checkFluxFastProject(options);
+if (!status.current) {
+  console.error("Stale generated artifacts:", status.staleFiles);
+  process.exitCode = 1;
+}
+```
+
+The API reports data; it does not choose your process exit code. Invalid input or an unsafe output
+path can throw rather than return a stale-file list. Treat that as a failed build, not as permission
+to overwrite an arbitrary location.
+
+## 5. Keep the ownership and safety boundaries
+
+- **FastAPI owns declarations and validation.** The manifest describes backend routes and
+  contracts; Codegen does not create new FastAPI routes or grant access to them.
+- **The adapter owns component allowlisting.** The teaching registry explicitly selects
+  `stats/index`; it does not let a server-provided identifier become an unrestricted module path.
+  Use Next's existing registry generator for a supported Next.js application.
+- **Codegen owns deterministic output and replacement checks.** It compiles schema-backed
+  artifacts before the first write, confines destinations to the configured output directory,
+  and rejects symlink traversal and unsafe temporary replacements.
+- **Atomic replacement is per file.** Generation is not one transaction across all six files;
+  an operating-system error during writing can require a subsequent regeneration. Do not present
+  successful compilation as a guarantee that every filesystem write will succeed.
+
+The scratch `Stats` module returns `null` deliberately: this lab studies compilation and artifact
+checks, not frontend rendering. It neither changes the normal single-origin deployment nor
+announces a React, Vue, or Svelte adapter.
+
+## Continue with the references
+
+- [Codegen API](/FluxFast-Docs/codegen-api/) gives a declaration or use example for all 26 public
+  exports, including types, errors, inspection helpers, and generation results.
+- [Generated artifacts](/FluxFast-Docs/generated-artifacts/) defines the stable file names,
+  naming rules, ownership, and drift-check behavior.
+- [Type safety](/FluxFast-Docs/type-safety/) explains the normal application workflow.
+- [Server adapter API lab](/FluxFast-Docs/server-api-walkthrough/) covers initial-page fetching
+  and protocol proxying, which are separate from build-time compilation.
+- [Versions and upgrading](/FluxFast-Docs/version-guide/) distinguishes published features
+  from unreleased development material.
