@@ -52,8 +52,8 @@ resources, then renders it through the Next.js adapter.
     declarations—and fail CI when generated files drift.
   </Card>
   <Card title="Single-origin runtime" icon="seti:config">
-    Run one production command. The managed Next.js process stays private while FastAPI exposes the
-    application origin, health endpoints, and shutdown lifecycle.
+    Run one production command. Next.js exposes the public application origin and health endpoints;
+    FastAPI stays private. FluxFast supervises both processes and their shutdown lifecycle.
   </Card>
   <Card title="Scoped synchronization" icon="refresh">
     Push canonical changes to connected clients with explicit public, user, or tenant scope and an
@@ -127,9 +127,18 @@ fluxfast types backend.main:app --frontend frontend
 fluxfast dev backend.main:app --frontend frontend
 ```
 
-After completing the [initial setup](./getting-started/), opening `/dashboard` displays
-**Demo viewer: Ada** and **pro plan**. `useResource` returns the resource value directly; use
-`useResourceState` when you also need status, stale, and error metadata.
+After completing the [initial setup](./getting-started/), open
+`http://127.0.0.1:3000/dashboard`. The page displays:
+
+```text title="Expected page output"
+Demo viewer: Ada
+pro plan
+```
+
+`useResource` returns the resource value directly; use `useResourceState` when you also need
+status, stale, and error metadata. Continue with the [API walkthrough](./api-walkthrough/) for a
+complete application with forms, deferred loading, live updates, and the corresponding JSON
+request/response examples.
 
 <Aside type="tip" title="No frontend backend URL is required">
   During development and production, the browser talks to the Next.js origin. The managed adapter
