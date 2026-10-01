@@ -102,6 +102,7 @@ export default defineConfig({
 					items: [
 						{ label: 'Stable APIs', slug: 'stable-apis' },
 						{ label: 'Advanced Stable APIs', slug: 'advanced-stable-apis' },
+						{ label: 'Advanced API walkthrough', slug: 'advanced-api-walkthrough' },
 						{ label: 'Python API', slug: 'python-api' },
 						{ label: '@fluxfast/core', slug: 'core-api' },
 						{ label: '@fluxfast/next', slug: 'next-api' },
@@ -112,6 +113,7 @@ export default defineConfig({
 				{
 					label: 'Compatibility',
 					items: [
+						{ label: 'Versions and upgrading', slug: 'version-guide' },
 						{ label: 'Stability guarantees', slug: 'stability' },
 						{ label: 'Versioning', slug: 'versioning' },
 						{ label: 'Migration guide', slug: 'migration' },
