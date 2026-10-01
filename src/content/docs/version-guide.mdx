@@ -26,12 +26,17 @@ On narrow screens, scroll the table horizontally to compare all three columns.
 | [1.0.0](/FluxFast-Docs/releases/v1-0-0/) | Published stable | The stable FastAPI, Core, and Next.js contracts, typed generation, forms, deferred/live resources, and managed production runtime. |
 | [1.0.1](/FluxFast-Docs/releases/v1-0-1/) | Published stable | Routable generated Next.js handlers and project-local agent integration knowledge. |
 | [1.1.0](/FluxFast-Docs/releases/v1-1-0/) | Latest published stable documented here | Optional development DevTools and bounded runtime/server observations. Existing application APIs remain compatible. |
-| Unreleased v1.2 foundation | Development material only | A separate framework-neutral Core server integration surface. It does not replace your installed Next.js setup or announce another supported frontend adapter. |
+| Unreleased v1.2 foundation | Development material only | Framework-neutral initial-page fetching, header helpers, and an HTTP/streaming transport proxy at `@fluxfast/core/server`. The development Next.js adapter delegates these boundaries; installed v1.1 applications keep their existing setup. No additional frontend adapter is announced. |
 
 The [Core reference](/FluxFast-Docs/core-api/#server-adapter-primitives-unreleased-v12) explicitly
 labels its new server helpers. Until a release publishes them, ordinary applications should keep
 their existing `@fluxfast/next/server` integration and generated handlers. Do not copy development
 files into `node_modules` or import private package internals to make an unavailable API work.
+
+Adapter authors can use the [Server adapter API walkthrough](/FluxFast-Docs/server-api-walkthrough/)
+to test the source-built development helpers against a real backend. It includes API calls and
+expected page, mutation, validation, missing-page, and path-rejection results. It is not an upgrade
+instruction for a published v1.1 application.
 
 ## Install matched v1.1 packages
 

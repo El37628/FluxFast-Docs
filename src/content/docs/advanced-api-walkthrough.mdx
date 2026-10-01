@@ -290,6 +290,10 @@ swallow unrelated exceptions.
 Next.js translates initial page 404s into its own not-found boundary. That rendering behavior
 belongs to the adapter, not to `createFetchTransport`. See the [Next API reference](/FluxFast-Docs/next-api/).
 
+The [Server adapter API walkthrough](/FluxFast-Docs/server-api-walkthrough/) demonstrates the
+separate initial-fetch and proxy boundaries being developed for v1.2. Those new server exports
+are **not** present in the published 1.1.0 Core package used by this lab.
+
 ### Diagnostics and cleanup are explicit
 
 An active diagnostics observer opts transport requests into development traces. The backend
