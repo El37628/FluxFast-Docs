@@ -4,6 +4,8 @@ description: "Run generated validation plans in the browser and map issues into 
 slug: "validation"
 editUrl: "https://github.com/El37628/FluxFast/edit/main/docs/validation.md"
 ---
+> **Version notice:** This page follows the **1.2.0 release candidate**. The latest published stable release is **1.1.0**; the React/Vite host and new Core server/Codegen entry points are not available in 1.1.0. [Check availability before installing](/FluxFast-Docs/version-guide/).
+
 FluxFast 0.8 provides a first-party, dependency-free runtime validation system.
 Supported validation plans are compiled directly from authoritative Python and
 Pydantic contracts into `@/.fluxfast/validators.generated.ts`.

@@ -4,9 +4,13 @@ description: "Build, validate, start, observe, and stop the single-origin produc
 slug: "production"
 editUrl: "https://github.com/El37628/FluxFast/edit/main/docs/production.md"
 ---
-FluxFast runs a FastAPI application and a Next.js application as one production
-service. An external process manager starts one foreground `fluxfast start`
-process; FluxFast supervises the two runtimes behind one public Next.js origin.
+> **Version notice:** This page follows the **1.2.0 release candidate**. The latest published stable release is **1.1.0**; the React/Vite host and new Core server/Codegen entry points are not available in 1.1.0. [Check availability before installing](/FluxFast-Docs/version-guide/).
+
+FluxFast runs FastAPI and the selected frontend host as one production service:
+Next.js, or React/Vite from 1.2. An external process manager starts one foreground
+`fluxfast start` process; FluxFast supervises the two runtimes behind one public
+origin. The diagram and Next-specific deployment examples below retain the
+existing Next topology; the React/Vite host uses the same private-backend boundary.
 
 ```text
 browser or load balancer
@@ -44,6 +48,24 @@ backend URL, or requiring CORS would be a breaking production-contract change.
 The [v1.0 production topology gate](/FluxFast-Docs/releases/v1-0-production-topology/) records
 repeatable installed-artifact and OCI image checks for this boundary.
 
+<a id="source-development-reactvite-host-unreleased-v12"></a>
+
+### React/Vite host (FluxFast 1.2)
+
+The Python 1.2 CLI detects `@fluxfast/vite` in an initialized frontend and
+uses `fluxfast:dev`, `fluxfast:build` and `fluxfast:start`, keeping existing SPA
+scripts intact. The same supervisor starts FastAPI privately, injects its URL,
+waits for readiness and stops both children as one application. Next defaults
+and public Python command names/options remain unchanged. Production consumes
+the prebuilt `dist/fluxfast/` renderer/client outputs, never Vite source config.
+See the [complete React setup and example](/FluxFast-Docs/vite-host/#run-the-complete-application-with-python).
+Use matching 1.2 packages; Python 1.1 cannot select this host. Follow the
+[React/Vite tutorial](/FluxFast-Docs/react-getting-started/) and
+[release notes](/FluxFast-Docs/releases/v1-2-0/) for installation and publication status.
+Shared browser contracts run in both modes and from verified release archives.
+Historical Next image evidence below is not evidence of a React container build;
+verify your own selected host's image and dependency pruning.
+
 ## Stable Python CLI contract
 
 These command names, option names, positional inputs, and major default
@@ -56,7 +78,7 @@ semantics are stable throughout 1.x:
 | `fluxfast start APP` | `--frontend`, `--host`, `--port`, `--backend-host`, `--backend-port`, `--workers`, `--startup-timeout`, `--shutdown-timeout` | Start the prebuilt production artifact as one foreground supervised service. |
 | `fluxfast doctor --production` | `--app`, `--frontend`, `--host`, `--port`, `--backend-host`, `--backend-port`, `--workers`, `--strict` | Inspect production readiness without modifying the project; `--production` remains required. |
 | `fluxfast schema APP` | `--output`, `--check` | Export the deterministic backend schema, or compare an existing `--output` without writing; check mode requires that path. |
-| `fluxfast types APP` | `--frontend`, `--check` | Compose backend schema export with the locally installed Next CLI; check mode is read-only. |
+| `fluxfast types APP` | `--frontend`, `--check`, `--adapter next` or `--adapter react` (1.2+) | Compose backend schema export with locally installed Codegen or the selected host generator; check mode is read-only. |
 
 `APP` uses `module:attribute` syntax. A successful command exits `0`; usage,
 validation, drift, startup, or child-process failure exits nonzero. Human
@@ -68,7 +90,8 @@ applications should not infer undocumented meanings from other nonzero values.
 
 Install the Python and frontend dependencies before building. The frontend must
 be initialized with `@fluxfast/next` and define non-empty `build` and `start`
-scripts. FluxFast detects pnpm, Yarn, Bun, or npm from the frontend lockfile,
+scripts, or with `@fluxfast/vite` and its scoped `fluxfast:build/start` scripts.
+FluxFast detects pnpm, Yarn, Bun, or npm from the frontend lockfile,
 then the `packageManager` field; it defaults to npm when neither is present.
 The selected package manager and local package binaries must already be on
 `PATH`. Production commands never download dependencies.

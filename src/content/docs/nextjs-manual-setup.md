@@ -4,6 +4,8 @@ description: "Wire the Next.js adapter by hand when automatic initialization is 
 slug: "nextjs-manual-setup"
 editUrl: "https://github.com/El37628/FluxFast/edit/main/docs/nextjs-manual-setup.md"
 ---
+> **Version notice:** This page follows the **1.2.0 release candidate**. The latest published stable release is **1.1.0**; the React/Vite host and new Core server/Codegen entry points are not available in 1.1.0. [Check availability before installing](/FluxFast-Docs/version-guide/).
+
 Use `npx fluxfast init` for normal applications. This guide is the fallback for
 custom monorepos, an unsupported `next.config` export, deliberate wrapper
 ordering, CI debugging, or framework development.

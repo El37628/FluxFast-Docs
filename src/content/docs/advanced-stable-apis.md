@@ -4,6 +4,8 @@ description: "Build supported cache, live, transport, protocol, handler, and too
 slug: "advanced-stable-apis"
 editUrl: "https://github.com/El37628/FluxFast/edit/main/docs/advanced-stable-apis.md"
 ---
+> **Version notice:** This page follows the **1.2.0 release candidate**. The latest published stable release is **1.1.0**; the React/Vite host and new Core server/Codegen entry points are not available in 1.1.0. [Check availability before installing](/FluxFast-Docs/version-guide/).
+
 Advanced Stable APIs are supported public APIs for infrastructure, framework,
 transport, protocol, cache, live-resource, validation-plan, and generation
 integrations. They receive the same FluxFast 1.x compatibility guarantee as
@@ -71,6 +73,22 @@ must otherwise reproduce.
 | Registry inspection | `createPagesRegistrySnapshot`, `PagesRegistrySnapshot` | Tooling needs a read-only in-memory registry snapshot without writing files. |
 | Destination resolution | `buildFluxPath`, `resolveInternalDestination` | Server tooling reconstructs a safe backend path or private rewrite destination. |
 | Client context | `FluxContext`, `FluxContextValue` | A framework wrapper must bridge the provider context directly. Components should use hooks. |
+
+### Shared adapter and generation integration in 1.2
+
+The [Core server reference](/FluxFast-Docs/core-api/#server-adapter-primitives-fluxfast-12)
+documents `fetchFluxInitialPage`, safe headers/redirects and streaming proxy
+primitives. Use them only when implementing a host boundary; ordinary Next or
+React/Vite applications already have that boundary. The
+[React SSR reference](/FluxFast-Docs/react-ssr/) explains same-envelope rendering/hydration
+with executable API examples and the [adapter contract](/FluxFast-Docs/adapter-contract/)
+defines ownership, lifecycle and conformance obligations.
+
+For custom build tooling, [Codegen](/FluxFast-Docs/codegen-api/) documents shared compiler,
+registry and read-only generation APIs with explicit Next/React targets. The
+[Vite reference](/FluxFast-Docs/vite-host/#api-reference) covers plugin and server inputs,
+results and their actual uses. Prefer the [application tutorial](/FluxFast-Docs/react-getting-started/)
+when your goal is to build an application rather than another adapter.
 
 ## Every Advanced Stable API in one line
 

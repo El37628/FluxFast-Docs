@@ -4,6 +4,8 @@ description: "Reference for the deterministic schema consumed by FluxFast code g
 slug: "developer-schema"
 editUrl: "https://github.com/El37628/FluxFast/edit/main/docs/developer-schema.md"
 ---
+> **Version notice:** This page follows the **1.2.0 release candidate**. The latest published stable release is **1.1.0**; the React/Vite host and new Core server/Codegen entry points are not available in 1.1.0. [Check availability before installing](/FluxFast-Docs/version-guide/).
+
 The developer manifest is an offline code-generation contract. It is separate
 from the `fluxfast/1` browser protocol, package versions, runtime page data,
 cache storage, and live-resource messages.

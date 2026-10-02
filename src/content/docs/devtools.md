@@ -4,6 +4,8 @@ description: "Install and use the development-only FluxFast Debugbar to inspect 
 slug: "devtools"
 editUrl: "https://github.com/El37628/FluxFast/edit/main/docs/devtools.md"
 ---
+> **Version notice:** This page follows the **1.2.0 release candidate**. The latest published stable release is **1.1.0**; the React/Vite host and new Core server/Codegen entry points are not available in 1.1.0. [Check availability before installing](/FluxFast-Docs/version-guide/).
+
 FluxFast DevTools is an optional development-only Debugbar for observing the
 resource synchronization runtime. It answers questions such as:
 

@@ -4,6 +4,8 @@ description: "Set up and configure the managed Next.js App Router shell."
 slug: "nextjs-adapter"
 editUrl: "https://github.com/El37628/FluxFast/edit/main/docs/nextjs-adapter.md"
 ---
+> **Version notice:** This page follows the **1.2.0 release candidate**. The latest published stable release is **1.1.0**; the React/Vite host and new Core server/Codegen entry points are not available in 1.1.0. [Check availability before installing](/FluxFast-Docs/version-guide/).
+
 FluxFast supports Next.js 16.3+ with React 19 and the App Router. FastAPI remains
 the application router; Next.js supplies the document, bundling, React runtime,
 and code splitting through one optional catch-all shell.
@@ -218,7 +220,7 @@ The helper reconstructs the path and repeated search parameters, forwards only
 cookie, authorization, accept-language, user-agent, and explicitly configured
 safe headers, and never forwards hop-by-hop headers.
 
-In unreleased v1.2 development, the adapter delegates initial fetching and
+From FluxFast 1.2, the adapter delegates initial fetching and
 header selection to `@fluxfast/core/server`. Existing consumer imports and
 generated catch-all files stay unchanged; Next.js still owns request context,
 environment policy, rendering, and its not-found timing boundary.

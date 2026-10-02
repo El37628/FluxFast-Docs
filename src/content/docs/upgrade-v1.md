@@ -4,6 +4,8 @@ description: "A focused checklist for upgrading from v0.9.x to v1.0.0."
 slug: "upgrade-v1"
 editUrl: "https://github.com/El37628/FluxFast/edit/main/docs/upgrade-v1.md"
 ---
+> **Version notice:** This page follows the **1.2.0 release candidate**. The latest published stable release is **1.1.0**; the React/Vite host and new Core server/Codegen entry points are not available in 1.1.0. [Check availability before installing](/FluxFast-Docs/version-guide/).
+
 No application rewrite is required. FluxFast 1.0 promotes the public Python,
 Core, Next.js, CLI, generated-code, `fluxfast/1` protocol, and
 `fluxfast-schema/2` contracts frozen in v0.9.0.

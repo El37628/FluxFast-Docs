@@ -4,6 +4,8 @@ description: "Maintainer workflow for validating and publishing synchronized Flu
 slug: "releasing"
 editUrl: "https://github.com/El37628/FluxFast/edit/main/docs/releasing.md"
 ---
+> **Version notice:** This page follows the **1.2.0 release candidate**. The latest published stable release is **1.1.0**; the React/Vite host and new Core server/Codegen entry points are not available in 1.1.0. [Check availability before installing](/FluxFast-Docs/version-guide/).
+
 ## Historical release snapshots
 
 Final runtime snapshots are immutable evidence for the release they audited.
@@ -13,8 +15,10 @@ runtime digest. A later release candidate that changes runtime source requires
 its own review and evidence before tagging; never rewrite an earlier release's
 snapshot to make a new change pass.
 
-Stable releases publish the same version to PyPI, `@fluxfast/core`, and
-`@fluxfast/next`. Pushing a matching `vMAJOR.MINOR.PATCH` tag starts
+Stable releases publish the same version to Python and the npm packages in
+that release line. From 1.2, this means `fluxfast`, `@fluxfast/core`,
+`@fluxfast/codegen`, `@fluxfast/react`, `@fluxfast/vite`, `@fluxfast/next`,
+and `@fluxfast/devtools`. Pushing a matching `vMAJOR.MINOR.PATCH` tag starts
 `.github/workflows/release.yml`. The workflow validates versions, runs all
 tests, builds and smoke-tests the distributions, publishes through short-lived
 OIDC credentials, and creates a GitHub release containing those distributions.
@@ -24,7 +28,7 @@ building and publication cannot begin until those reusable workflow gates pass,
 so the GitHub release cannot race ahead of production, Docker, or rootless
 Podman failures.
 Before publication, one job builds and verifies the wheel, source distribution,
-and both npm tarballs, then uploads that exact checksum-bound candidate for the
+and every required npm tarball, then uploads that exact checksum-bound candidate for the
 consumer jobs. The source distribution is installed in a dedicated clean
 virtual environment; the wheel and npm tarballs are installed together in a
 separate clean application consumer. That consumer runs `fluxfast init`, validates
@@ -44,20 +48,22 @@ reused from the shared cache by another, invalidated by a mutation on a third,
 synchronized over Redis Pub/Sub, and then reused at its new value without
 running another loader. Its frontend uses the optimized production build, and
 the gate verifies graceful shutdown of the frontend, proxy, and all workers.
-Before publication, the release-artifact workflow creates a real consumer using
-published 0.9.0 packages. One run installs the built current Python candidate
-first while JavaScript remains at 0.9.0; a second installs the built current
-JavaScript candidate first while Python remains at 0.9.0. Both mixed states
+Before publication, the release-artifact workflow creates real consumers using
+published 1.0.1 and 1.1.0 packages. For each baseline, one run installs the built
+current Python candidate first while JavaScript remains at that baseline; a
+second installs the built current JavaScript candidate first while Python stays
+at the baseline. Both mixed states
 must pass the full deferred, live, typed, mutation, navigation, and distributed
 Redis browser scenario before the remaining packages are upgraded. The matched
-candidate is tested again, then both sides are rolled back to 0.9.0 and must
+candidate is tested again, then both sides are rolled back to the baseline and must
 regenerate, typecheck, production-build, and run without `fluxfast init`
 rewriting the initialized scaffold. The branch gate retains one current-Python
 and JavaScript 0.8.1 historical smoke; v0.8.1 is no longer the complete matrix.
 
 After registry publication, the release workflow repeats both complete upgrade
-and rollback orders using only registry packages. The GitHub release is created
-only after these registry-backed compatibility checks pass.
+and rollback orders against both baselines using only registry packages. The
+GitHub release is created only after these registry-backed compatibility checks
+and the matched Next and React production consumers pass.
 
 A release that changes typed contracts or code generation must also prove the
 developer-tooling path from built artifacts: install the wheel and npm
@@ -69,6 +75,14 @@ not as hand-maintained package source. The mixed-version jobs must continue to
 prove that an older JavaScript client can consume the unchanged browser
 protocol from a typed Python server and that current JavaScript still supports
 an older Python server without a developer manifest.
+
+The tooling compatibility gate checks all six generated artifacts. Each schema
+and typed header must name the Python distribution actually installed in that
+consumer. A package-version promotion changes that producer metadata, not the
+contract: comparison normalizes only the validated top-level producer field
+and the four generated producer comments. Fingerprints, protocol/schema IDs,
+types, validators, routes, mutations, registries and all other bytes must match.
+Read-only checks still preserve the original files, bytes and modification times.
 
 The normal integration workflow also exercises the real Redis cache, live
 broker, restart behavior, and independent Uvicorn workers against the oldest
@@ -88,8 +102,8 @@ release blocker while retaining an auditable build and publication chain.
 
 Before publication, the release workflow builds the exact distribution set for
 the target version. FluxFast 1.0.x retains its immutable four-distribution
-contract. FluxFast 1.1 and later add the optional DevTools package, for five
-distributions:
+contract. FluxFast 1.1 adds the optional DevTools package, for five distributions;
+1.2 adds Codegen, React and Vite, for eight:
 
 ```text
 fluxfast-VERSION-py3-none-any.whl
@@ -97,6 +111,9 @@ fluxfast-VERSION.tar.gz
 fluxfast-core-VERSION.tgz
 fluxfast-next-VERSION.tgz
 fluxfast-devtools-VERSION.tgz
+fluxfast-codegen-VERSION.tgz
+fluxfast-react-VERSION.tgz
+fluxfast-vite-VERSION.tgz
 ```
 
 The release artifact verifier rejects missing or extra distributions, unsafe
@@ -105,18 +122,43 @@ and peer-dependency drift, incorrect Python metadata, mismatched license or
 README content, and packaged source/build output that differs from the checked
 out package trees byte for byte. It then writes `SHA256SUMS` for every verified
 file. The verifier remains version-aware so rerunning the 1.0.x evidence still
-expects four distributions while 1.1.0 requires DevTools. Before either
+expects four distributions while 1.1 requires DevTools and 1.2 requires all eight.
+Before either
 registry job starts, a separate job downloads all three immutable workflow
 artifacts, rebuilds the JavaScript package output from the tagged source, and
 repeats the full content and checksum verification. The
 final GitHub-release job rebuilds, downloads, and verifies the payload again
-before attaching the five distributions and checksum file. The historical 1.0
+before attaching the complete version-specific distribution set and checksum file. The historical 1.0
 proof is recorded in the
 [v1.0 artifact-verification gate](/FluxFast-Docs/releases/v1-0-artifact-verification/).
 The protected check context retains the historical name
-`Four-distribution contract` for branch-rule continuity, but its v1.1 run uses
-the version-aware five-distribution verifier described above.
-After downloading the six v1.1 release assets into one directory, verify them
+`Four-distribution contract` for branch-rule continuity, but its current run uses
+the version-aware distribution verifier described above.
+
+The v1.2 candidate additionally requires Codegen, React and Vite
+tarballs. The verifier
+checks eight distributions against source intent, including dependency/optional
+peer metadata and all packed output. Historical v1.0/v1.1 payloads are unchanged.
+The candidate-artifact job runs the same React browser contracts against these
+exact verified archives, not separately rebuilt copies. The tag workflow also
+tests its final publication payload in both modes before uploading it to the
+registry jobs. React cold hydration, navigation, same-origin source/HMR updates,
+initialization, Python supervision, and immutable production execution without
+source, Next, Vite, Codegen or TypeScript must all pass.
+
+After publication, a separate consumer installs the matching Python distribution
+and Core, Codegen, React, Vite and DevTools from the registries only, verifies their
+installed versions, and repeats the development and production contracts. It
+cannot fall back to checkout builds or local archives. Only a missing registry
+version (HTTP 404) receives bounded propagation retries; authentication, network,
+malformed-data and other HTTP failures fail closed. The GitHub release waits for
+this job as well as the Next and upgrade/rollback consumers.
+
+Do not publish the foundation alone: complete React SSR/Vite host conformance
+must pass before v1.2.0. New npm package names also need their own trusted-publisher setup
+before the tag workflow can publish them; existing publishers do not grant
+publication rights to newly introduced packages automatically.
+After downloading the release assets into one directory, verify them
 with:
 
 ```bash
@@ -125,7 +167,7 @@ sha256sum --check SHA256SUMS
 
 Registry publication uses short-lived GitHub OIDC identities rather than
 stored publication tokens. npm publication requests registry provenance for
-Core, Next, and DevTools. PyPI trusted publishing emits PEP 740 attestations
+all six npm packages. PyPI trusted publishing emits PEP 740 attestations
 explicitly.
 All external release actions stay pinned to full commit SHAs, and write
 permissions remain scoped to the individual publish or GitHub-release job that
@@ -223,8 +265,9 @@ payload.
 
 ## One-time registry setup
 
-Create GitHub environments named `pypi` and `npm`. Add required reviewers to
-both environments so a tag cannot publish without approval. Protect release
+Create GitHub environments named `pypi` and `npm`. Configure appropriate required
+reviewers if your repository/account supports that protection; approval controls
+are shown only when a job actually has a configured approval gate. Protect release
 tags matching `v*` in the repository rules as well.
 
 Before the first public release of any package, also configure these repository
@@ -250,32 +293,36 @@ Follow the [PyPI trusted publisher guide](https://docs.pypi.org/trusted-publishe
 No PyPI API token is required.
 
 npm requires a package to exist before trusted publishing can be configured.
-Confirm that your npm account owns the `@fluxfast` scope, then bootstrap each
-package name once from a clean `main` checkout using an interactive account
+Confirm that your npm account owns the `@fluxfast` scope, then bootstrap only
+missing package names once from a clean, reviewed `main` checkout using an interactive account
 protected by two-factor authentication. Use a temporary prerelease so the
 first stable version remains available for automation:
 
 ```bash
 pnpm install --frozen-lockfile
 pnpm build
-npm login
+npm login --auth-type=web
 
 bootstrap_dir="$(mktemp -d)"
-cp -R packages/core "$bootstrap_dir/core"
-cp -R packages/next "$bootstrap_dir/next"
-cp -R packages/devtools "$bootstrap_dir/devtools"
-npm pkg set version=0.0.0-oidc-bootstrap.0 --prefix "$bootstrap_dir/core"
-npm pkg set version=0.0.0-oidc-bootstrap.0 --prefix "$bootstrap_dir/next"
-npm pkg set version=0.0.0-oidc-bootstrap.0 --prefix "$bootstrap_dir/devtools"
-npm pkg set 'dependencies.@fluxfast/core=0.0.0-oidc-bootstrap.0' \
-  --prefix "$bootstrap_dir/next"
-npm publish "$bootstrap_dir/core" --access public --tag bootstrap
-npm publish "$bootstrap_dir/next" --access public --tag bootstrap
-npm publish "$bootstrap_dir/devtools" --access public --tag bootstrap
+for package in codegen react vite; do
+  # Only use this list when these names do not yet exist in the registry.
+  mkdir "$bootstrap_dir/$package"
+  cp packages/"$package"/package.json packages/"$package"/README.md \
+    packages/"$package"/LICENSE "$bootstrap_dir/$package/"
+  cp -R packages/"$package"/dist "$bootstrap_dir/$package/dist"
+  if [ -d packages/"$package"/bin ]; then
+    cp -R packages/"$package"/bin "$bootstrap_dir/$package/bin"
+  fi
+  npm pkg set version=0.0.0-oidc-bootstrap.0 --prefix "$bootstrap_dir/$package"
+  npm publish "$bootstrap_dir/$package" --access public --tag bootstrap
+done
 ```
 
-When Core and Next are already configured, bootstrap only the new DevTools
-package; never republish or reuse an existing package version.
+For 1.2, existing Core, Next and DevTools publishers remain configured; the new
+names are Codegen, React and Vite. Check registry existence before running a
+bootstrap. A bootstrap is setup-only, may reference the upcoming synchronized
+dependencies, and is not an application installation or a stable release.
+Never republish or reuse an existing package version.
 
 Configure a trusted publisher on each npm package with these exact values:
 
@@ -286,8 +333,23 @@ Configure a trusted publisher on each npm package with these exact values:
 - Allowed action: `npm publish`
 
 The [npm trusted publishing guide](https://docs.npmjs.com/trusted-publishers/)
-contains the corresponding package-settings form. After configuring all three
-connections, require two-factor authentication and disallow traditional
+contains the corresponding package-settings form. Alternatively, npm 11.15+
+provides the [interactive trust command](https://docs.npmjs.com/cli/v11/commands/npm-trust/):
+
+```bash
+npm trust github @fluxfast/codegen --repository El37628/FluxFast \
+  --file release.yml --environment npm --allow-publish
+npm trust github @fluxfast/react --repository El37628/FluxFast \
+  --file release.yml --environment npm --allow-publish
+npm trust github @fluxfast/vite --repository El37628/FluxFast \
+  --file release.yml --environment npm --allow-publish
+```
+
+This is a credential configuration step: the package must already exist, the
+account must have write permission, and the command requires interactive
+authentication/2FA. Do not send passwords, tokens or OTPs to an agent or commit
+them. Verify every required package's connection **before pushing the stable tag**.
+After configuring all six connections, require two-factor authentication and disallow traditional
 automation tokens.
 
 ## Publish a stable release
@@ -297,7 +359,7 @@ the package manifests, Python runtime version, lockfile, and dated release
 section together:
 
 ```bash
-version=1.1.0
+version=1.2.0
 pnpm release:prepare "$version"
 pnpm release:check "v$version"
 ```
@@ -311,7 +373,7 @@ an up-to-date checkout:
 ```bash
 git switch main
 git pull --ff-only
-version=1.1.0
+version=1.2.0
 pnpm release:check "v$version"
 git tag -a "v$version" -m "FluxFast $version"
 git push origin "v$version"
@@ -319,7 +381,7 @@ git push origin "v$version"
 
 Approve the `pypi` and `npm` deployment jobs in GitHub when prompted. Never
 move a published tag or reuse a package version; publish a new patch instead.
-If npm publishing is interrupted between its three packages, rerunning the
+If npm publishing is interrupted between its packages, rerunning the
 failed job verifies the already-published tarball's exact integrity before
 continuing.
 After the first stable release succeeds, remove the bootstrap dist-tags:
@@ -328,4 +390,7 @@ After the first stable release succeeds, remove the bootstrap dist-tags:
 npm dist-tag rm @fluxfast/core bootstrap
 npm dist-tag rm @fluxfast/next bootstrap
 npm dist-tag rm @fluxfast/devtools bootstrap
+npm dist-tag rm @fluxfast/codegen bootstrap
+npm dist-tag rm @fluxfast/react bootstrap
+npm dist-tag rm @fluxfast/vite bootstrap
 ```

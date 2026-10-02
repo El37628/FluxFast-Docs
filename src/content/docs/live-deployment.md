@@ -4,6 +4,8 @@ description: "Proxy, secure, and operate live resource streams in production."
 slug: "live-deployment"
 editUrl: "https://github.com/El37628/FluxFast/edit/main/docs/live-deployment.md"
 ---
+> **Version notice:** This page follows the **1.2.0 release candidate**. The latest published stable release is **1.1.0**; the React/Vite host and new Core server/Codegen entry points are not available in 1.1.0. [Check availability before installing](/FluxFast-Docs/version-guide/).
+
 Live Resources use long-lived Server-Sent Event responses over ordinary HTTP.
 The browser should still see one frontend origin:
 

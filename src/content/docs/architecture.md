@@ -1,9 +1,11 @@
 ---
 title: "Architecture"
-description: "Understand how FastAPI, the resource graph, browser stores, and the Next.js shell divide responsibility."
+description: "Understand how FastAPI, the resource graph, browser stores, and the Next.js or React/Vite host divide responsibility."
 slug: "architecture"
 editUrl: "https://github.com/El37628/FluxFast/edit/main/docs/architecture.md"
 ---
+> **Version notice:** This page follows the **1.2.0 release candidate**. The latest published stable release is **1.1.0**; the React/Vite host and new Core server/Codegen entry points are not available in 1.1.0. [Check availability before installing](/FluxFast-Docs/version-guide/).
+
 FluxFast synchronizes a graph of small resources rather than replacing one
 page-sized props object.
 
@@ -29,8 +31,23 @@ for mapping that identifier to an allowlisted UI module.
 
 The [frontend adapter implementation contract](/FluxFast-Docs/adapter-contract/) specifies
 document ownership, SSR/hydration, navigation, resource/deferred/mutation/live
-bindings, diagnostics, and production requirements for future hosts. Next.js
-remains the only implemented host; the multi-adapter foundation is unreleased.
+bindings, diagnostics, and production requirements for hosts. FluxFast 1.2
+supports both Next.js and React/Vite; see the [release notes](/FluxFast-Docs/releases/v1-2-0/)
+for package availability.
+
+The shared bindings place the React context, provider/root, component resolver,
+hooks, forms, and links in `@fluxfast/react`. The Next adapter keeps its public
+imports through compatibility re-exports; DevTools subscribes to the same React
+context. The bindings depend only on browser Core and React peers, never Next,
+Codegen, server primitives, backend configuration, or a second resource engine.
+Separate React server/client entries provide the SSR/hydration
+boundary for host authors. The [Vite host](/FluxFast-Docs/vite-host/) adds
+asset serving, client/SSR builds, initialization and HTTP lifecycle cleanup.
+The Python CLI selects this host for generation and the existing
+development/production supervisor. React/Vite now runs the same browser contract
+in both modes, including packed initialized consumers and three-worker Redis
+production tests. Release gates verify the exact packed artifacts and then
+matching registry-only applications before creating the GitHub release.
 
 Live Resources add a synchronization path without changing that ownership:
 
@@ -93,8 +110,8 @@ Application Contracts](/FluxFast-Docs/contracts/), [Native Client Validation](/F
 [ADR-0006](/FluxFast-Docs/decisions/0006-typed-resource-contracts/), and
 [ADR-0008](/FluxFast-Docs/decisions/0008-general-contracts-and-native-validation/).
 
-Unreleased v1.2 moves generic schema/type/validator/route/mutation compilation
-and atomic artifact persistence into `@fluxfast/codegen`. It depends on Node
+FluxFast 1.2 moves generic schema/type/validator/route/mutation compilation
+and per-file atomic artifact persistence into `@fluxfast/codegen`. It depends on Node
 standard-library APIs and Core types, not the Core runtime, React, or Next.js.
 Codegen also scans page modules and renders the allowlisted registry through an
 explicit adapter target. Next's unchanged generator selects its runtime exports
@@ -281,7 +298,7 @@ core package does not import Pydantic, generated application modules, React, or
 Next.js. This keeps future frontend adapters from depending on Next-specific
 behavior.
 
-Unreleased v1.2 foundation work moves generic initial-page fetching and safe
+FluxFast 1.2 moves generic initial-page fetching and safe
 header selection into `@fluxfast/core/server`. The Next.js server entry point
 delegates those operations while keeping `next/headers`, catch-all path encoding,
 backend environment policy, application rendering, and the real Next not-found

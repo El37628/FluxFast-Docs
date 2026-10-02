@@ -4,6 +4,8 @@ description: "Declare reusable application types and generate TypeScript from Py
 slug: "contracts"
 editUrl: "https://github.com/El37628/FluxFast/edit/main/docs/contracts.md"
 ---
+> **Version notice:** This page follows the **1.2.0 release candidate**. The latest published stable release is **1.1.0**; the React/Vite host and new Core server/Codegen entry points are not available in 1.1.0. [Check availability before installing](/FluxFast-Docs/version-guide/).
+
 FluxFast allows developers to define server-owned contracts that are reusable
 throughout the frontend application. Generated TypeScript types are not
 conceptually tied to page loaders or resource fetches; they represent

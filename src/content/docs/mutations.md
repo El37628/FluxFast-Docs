@@ -4,6 +4,8 @@ description: "Submit typed mutations, handle validation errors, and refresh affe
 slug: "mutations"
 editUrl: "https://github.com/El37628/FluxFast/edit/main/docs/mutations.md"
 ---
+> **Version notice:** This page follows the **1.2.0 release candidate**. The latest published stable release is **1.1.0**; the React/Vite host and new Core server/Codegen entry points are not available in 1.1.0. [Check availability before installing](/FluxFast-Docs/version-guide/).
+
 Register mutations with `FluxRouter.mutation()` or `FluxFast.mutation()`. Return
 `mutation(...)` with a small set of patches, scoped invalidations, or redirects.
 

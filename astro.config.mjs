@@ -38,7 +38,7 @@ export default defineConfig({
 			title: 'FluxFast',
 			titleDelimiter: '—',
 			description:
-				'Stable server-driven applications with FastAPI ownership and a reactive Next.js interface.',
+				'Server-driven React applications with FastAPI ownership, Next.js, and the React/Vite release candidate.',
 			logo: {
 				light: './src/assets/fluxfast-logo-light.png',
 				dark: './src/assets/fluxfast-logo-dark.png',
@@ -60,7 +60,7 @@ export default defineConfig({
 				{
 					label: 'Start here',
 					items: [
-						{ label: 'Quickstart', slug: 'getting-started' },
+						{ label: 'Next.js quickstart', slug: 'getting-started' },
 						{ label: 'API walkthrough', slug: 'api-walkthrough' },
 						{ label: 'Reference applications', slug: 'examples' },
 						{ label: 'Architecture', slug: 'architecture' },
@@ -88,6 +88,15 @@ export default defineConfig({
 					],
 				},
 				{
+					label: 'React / Vite (1.2 candidate)',
+					items: [
+						{ label: 'Build your first application', slug: 'react-getting-started' },
+						{ label: 'React hooks and components', slug: 'react-api' },
+						{ label: 'SSR and hydration', slug: 'react-ssr' },
+						{ label: 'Vite host and CLI', slug: 'vite-host' },
+					],
+				},
+				{
 					label: 'Operate in production',
 					items: [
 						{ label: 'Production deployment', slug: 'production' },
@@ -103,13 +112,13 @@ export default defineConfig({
 						{ label: 'Stable APIs', slug: 'stable-apis' },
 						{ label: 'Advanced Stable APIs', slug: 'advanced-stable-apis' },
 						{ label: 'Advanced API walkthrough', slug: 'advanced-api-walkthrough' },
-						{ label: 'Adapter contract (unreleased)', slug: 'adapter-contract' },
-						{ label: 'Server adapter lab (unreleased)', slug: 'server-api-walkthrough' },
-						{ label: 'Codegen API lab (unreleased)', slug: 'codegen-api-walkthrough' },
+						{ label: 'Adapter contract (1.2 candidate)', slug: 'adapter-contract' },
+						{ label: 'Server adapter lab (1.2 candidate)', slug: 'server-api-walkthrough' },
+						{ label: 'Codegen API lab (1.2 candidate)', slug: 'codegen-api-walkthrough' },
 						{ label: 'Python API', slug: 'python-api' },
 						{ label: '@fluxfast/core', slug: 'core-api' },
 						{ label: '@fluxfast/next', slug: 'next-api' },
-						{ label: '@fluxfast/codegen (unreleased)', slug: 'codegen-api' },
+						{ label: '@fluxfast/codegen (1.2 candidate)', slug: 'codegen-api' },
 						{ label: 'Wire protocol', slug: 'protocol' },
 						{ label: 'Developer schema', slug: 'developer-schema' },
 					],
@@ -127,6 +136,7 @@ export default defineConfig({
 				{
 					label: 'Release notes',
 					items: [
+						{ label: 'FluxFast 1.2.0 (candidate)', slug: 'releases/v1-2-0' },
 						{ label: 'FluxFast 1.1.0', slug: 'releases/v1-1-0' },
 						{ label: 'FluxFast 1.0.1', slug: 'releases/v1-0-1' },
 						{ label: 'FluxFast 1.0.0', slug: 'releases/v1-0-0' },

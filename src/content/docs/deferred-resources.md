@@ -1,9 +1,11 @@
 ---
 title: "Deferred Resources"
-description: "Stream non-blocking data after the first render with explicit loading and error states."
+description: "Load non-blocking resources after the first render with explicit loading and error states."
 slug: "deferred-resources"
 editUrl: "https://github.com/El37628/FluxFast/edit/main/docs/deferred-resources.md"
 ---
+> **Version notice:** This page follows the **1.2.0 release candidate**. The latest published stable release is **1.1.0**; the React/Vite host and new Core server/Codegen entry points are not available in 1.1.0. [Check availability before installing](/FluxFast-Docs/version-guide/).
+
 Deferred resources let a FluxFast page return its renderable shell before
 secondary resource loaders finish. They are an additive `fluxfast/1` feature,
 negotiated with the `deferred-resources` capability.
