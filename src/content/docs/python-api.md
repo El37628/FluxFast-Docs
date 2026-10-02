@@ -4,6 +4,8 @@ description: "Stable Python API reference for pages, resources, mutations, contr
 slug: "python-api"
 editUrl: "https://github.com/El37628/FluxFast/edit/main/docs/python-api.md"
 ---
+> **Version notice:** This page follows the **1.2.0 release candidate**. The latest published stable release is **1.1.0**; the React/Vite host and new Core server/Codegen entry points are not available in 1.1.0. [Check availability before installing](/FluxFast-Docs/version-guide/).
+
 FluxFast 1.x classifies every name exported from the official top-level
 `fluxfast` package. A stable API is the common application-author surface. An
 advanced stable API is intended for cache, live-resource, protocol, or framework

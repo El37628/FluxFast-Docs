@@ -1,6 +1,6 @@
 ---
 title: FluxFast documentation
-description: Build stable server-driven applications with FastAPI ownership and a reactive Next.js interface.
+description: Build server-driven React applications with FastAPI ownership, the published Next.js host, and the React/Vite release candidate.
 template: splash
 hero:
   title: Your FastAPI app, rendered at interface speed.
@@ -19,6 +19,13 @@ hero:
 import { Aside, Card, CardGrid, LinkCard } from '@astrojs/starlight/components';
 
 <p class="eyebrow">Stable v1.1 · FastAPI + Next.js</p>
+
+<Aside type="note" title="React / Vite is the 1.2.0 release candidate">
+  The new host supports server rendering, hydration, navigation, same-origin HMR, and managed
+  production startup without Next.js. Publication is still pending: the latest published stable
+  release is 1.1.0. Explore the [complete React tutorial](./react-getting-started/) and
+  [check package availability](./version-guide/) before installing its 1.2.0 dependencies.
+</Aside>
 
 ## One owner for application behavior
 
@@ -166,6 +173,11 @@ request/response examples.
 ## Follow a path
 
 <CardGrid>
+  <LinkCard
+    title="I want React without Next.js"
+    description="Explore the 1.2 candidate's complete FastAPI + React/Vite tutorial, with typed page code, UI/API output, and development and production commands."
+    href="./react-getting-started/"
+  />
   <LinkCard
     title="I am starting a new application"
     description="Install FluxFast, create a page and mutation, generate types, and run the one-command development loop."

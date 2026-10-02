@@ -4,6 +4,8 @@ description: "Package and run FluxFast with Docker or rootless Podman."
 slug: "containers"
 editUrl: "https://github.com/El37628/FluxFast/edit/main/docs/containers.md"
 ---
+> **Version notice:** This page follows the **1.2.0 release candidate**. The latest published stable release is **1.1.0**; the React/Vite host and new Core server/Codegen entry points are not available in 1.1.0. [Check availability before installing](/FluxFast-Docs/version-guide/).
+
 FluxFast uses the same OCI image under Docker and Podman. The image contains
 Python, Node.js, the FastAPI application, the production Next.js output, and the
 FluxFast supervisor. It is one application container even though it runs two

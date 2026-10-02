@@ -4,6 +4,8 @@ description: "Reproduce FluxFast performance measurements and interpret their co
 slug: "benchmarking"
 editUrl: "https://github.com/El37628/FluxFast/edit/main/docs/benchmarking.md"
 ---
+> **Version notice:** This page follows the **1.2.0 release candidate**. The latest published stable release is **1.1.0**; the React/Vite host and new Core server/Codegen entry points are not available in 1.1.0. [Check availability before installing](/FluxFast-Docs/version-guide/).
+
 ## Signature Scenario: Cross-Page Resource Reuse
 
 In traditional server-driven architectures, transitioning from `/dashboard` to `/rooms` resends all shared page props (`auth`, `hotel`, `permissions`, `settings`) on every navigation.
@@ -105,7 +107,9 @@ its temporary container and image after the run.
 Pass `--samples N` after `--` to select the measured sample count, for example
 `pnpm benchmark:codegen -- --samples 1` for a quick correctness run.
 
-## Unreleased v1.2 Adapter Foundation Comparison
+<a id="unreleased-v12-adapter-foundation-comparison"></a>
+
+## v1.2 Adapter Foundation Comparison
 
 The adapter extraction has a separate comparison against **actual published
 v1.1.0**, not the older v0.9.0 or v1.0.1 performance baselines:
@@ -115,7 +119,7 @@ pnpm benchmark:adapter-foundation
 pnpm benchmark:adapter-foundation -- --bundles
 ```
 
-This is an internal verification tool for unreleased development, not a v1.2
+This is an internal verification tool for release candidates, not a v1.2
 release announcement. It needs npm registry access and uses directory symlinks
 for its isolated package wrappers; the reference run below used Linux. It
 downloads Core and Next v1.1.0 archives and verifies their SHA-512 integrity

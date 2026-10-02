@@ -4,6 +4,8 @@ description: "Synchronize scoped resources across connected clients with reconne
 slug: "live-resources"
 editUrl: "https://github.com/El37628/FluxFast/edit/main/docs/live-resources.md"
 ---
+> **Version notice:** This page follows the **1.2.0 release candidate**. The latest published stable release is **1.1.0**; the React/Vite host and new Core server/Codegen entry points are not available in 1.1.0. [Check availability before installing](/FluxFast-Docs/version-guide/).
+
 Live Resources keep an ordinary FluxFast resource synchronized after hydration.
 They do not introduce another frontend store or a special live hook.
 

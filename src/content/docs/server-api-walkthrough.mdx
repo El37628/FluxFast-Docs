@@ -1,11 +1,11 @@
 ---
-title: Server adapter API walkthrough (unreleased)
-description: Test the unreleased framework-neutral server helpers against a real FastAPI backend, with initial-page, proxy, validation, missing-page, and failure outputs.
+title: Server adapter API walkthrough (1.2 candidate)
+description: Test the candidate framework-neutral server helpers against a real FastAPI backend, with initial-page, proxy, validation, missing-page, and failure outputs.
 ---
 
 import { Aside } from '@astrojs/starlight/components';
 
-This page explains the **unreleased v1.2 server foundation** on FluxFast's `main` branch.
+This page explains the **1.2.0 candidate's server APIs** on FluxFast's `main` branch.
 It is for adapter authors and maintainers, not a replacement setup for ordinary applications.
 The examples show what goes into each server API, what comes back, and which responsibilities
 remain with FastAPI and the rendering host.
@@ -15,6 +15,8 @@ remain with FastAPI and the rendering host.
   a built source checkout deliberately. Do not patch `node_modules`, import package internals
   in an application, or replace your generated Next.js handlers. Published applications should
   continue using `@fluxfast/next/server` and the [normal API walkthrough](/FluxFast-Docs/api-walkthrough/).
+  The 1.2.0 source is prepared, but publication is pending; check the
+  [version guide](/FluxFast-Docs/version-guide/) before installing a new package.
 </Aside>
 
 ## What are these helpers for?
@@ -62,7 +64,7 @@ This is a public, single-process teaching backend. It is not a persistence, auth
 or production deployment template. Using it also demonstrates that the new server helpers
 still consume the existing `fluxfast/1` protocol; the protocol is not renamed to match a package version.
 
-## 2. Build the development Core package
+## 2. Build the candidate Core package
 
 In another terminal, use Node.js 22 or 24 and a separate FluxFast source checkout:
 
@@ -74,6 +76,8 @@ corepack pnpm --filter @fluxfast/core build
 ```
 
 The repository build uses pnpm; that does not require your consuming application to use pnpm.
+For the new React/Vite application's standard SSR setup, use the
+[React tutorial](/FluxFast-Docs/react-getting-started/) instead of writing a custom server lab.
 Create `server-lab.mjs` **at this checkout's root**, using the complete example below.
 Its relative import targets the local build only because the new entry point has not been
 published. The intended package import for a release that provides this entry point is:
@@ -288,7 +292,7 @@ empty 404. None of those cases grants access to a backend route.
 
 ## Continue with the references
 
-- [Core server API](/FluxFast-Docs/core-api/#server-adapter-primitives-unreleased-v12) documents
+- [Core server API](/FluxFast-Docs/core-api/#server-adapter-primitives-fluxfast-12) documents
   every option, type, path restriction, redirect policy, header rule, and error boundary.
 - [Next.js adapter](/FluxFast-Docs/nextjs-adapter/) explains the unchanged supported host integration.
 - [Architecture](/FluxFast-Docs/architecture/) explains which layer owns each lifecycle.

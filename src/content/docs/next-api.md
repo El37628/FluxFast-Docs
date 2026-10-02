@@ -4,6 +4,8 @@ description: "Public API and entry-point reference for @fluxfast/next."
 slug: "next-api"
 editUrl: "https://github.com/El37628/FluxFast/edit/main/docs/next-api.md"
 ---
+> **Version notice:** This page follows the **1.2.0 release candidate**. The latest published stable release is **1.1.0**; the React/Vite host and new Core server/Codegen entry points are not available in 1.1.0. [Check availability before installing](/FluxFast-Docs/version-guide/).
+
 FluxFast 1.x treats the Next.js adapter's five npm entry points as stable.
 Import from the path matching the runtime boundary:
 

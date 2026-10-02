@@ -1,18 +1,19 @@
 ---
-title: Codegen API walkthrough (unreleased)
+title: Codegen API walkthrough (1.2 candidate)
 description: Compile an actual FastAPI schema, inspect generated source and validation diagnostics, and generate or check six artifacts with exact API inputs and outputs.
 ---
 
 import { Aside } from '@astrojs/starlight/components';
 
-This lab explains the **unreleased v1.2 Codegen foundation** on FluxFast's `main` branch.
+This lab explains the **1.2.0 candidate's Codegen APIs** on FluxFast's `main` branch.
 It is for adapter authors, build-tool authors, and maintainers. Ordinary applications should keep
 using `fluxfast types APP`, `fluxfast generate`, and the supported Next.js setup.
 
 <Aside type="caution" title="Not an npm package available in v1.1.0">
-  `@fluxfast/codegen` is not included in the published v1.1.0 release. A synchronized `1.1.0`
-  development version in the source checkout is not a publication notice. Build the source below;
+  `@fluxfast/codegen` is not included in the published v1.1.0 release. The source version is now
+  `1.2.0`, but publication is pending. Build the source below;
   do not run `npm install @fluxfast/codegen@1.1.0` or copy private compiler files into an application.
+  Check the [version guide](/FluxFast-Docs/version-guide/) before installing the candidate.
 </Aside>
 
 ## What does Codegen do?
@@ -24,6 +25,8 @@ run a mutation, or authorize a user.
 
 Codegen also scans page modules and renders a registry when you supply an explicit runtime target.
 The Next.js wrapper selects its existing runtime exports and client directive automatically.
+The candidate React/Vite wrapper selects `@fluxfast/react` without a Next client directive.
+The [React tutorial](/FluxFast-Docs/react-getting-started/) uses that application workflow.
 The shared scanner does not install a runtime or implement a new frontend adapter: its current
 registry template is React-style. This lab uses the Next target and actual source page files.
 
@@ -63,7 +66,7 @@ not require renaming the schema or the `fluxfast/1` wire protocol.
 Do not hand-write the manifest or edit its fingerprint in a real project. Backend declarations
 are the authoritative input; use schema export and regeneration after changing them.
 
-## 2. Build the development compiler
+## 2. Build the candidate compiler
 
 Use Node.js 22 or 24. In the directory containing `fluxfast-api-lab/`, create a separate checkout:
 
@@ -83,7 +86,7 @@ while compiling schema. The intended package import, once a release publishes it
 import { parseFluxFastSchemaManifest, generateFluxFastProject } from "@fluxfast/codegen";
 ```
 
-For this unreleased lab only, the complete script below imports the local build relative to the
+While publication is pending, the complete script below imports the local build relative to the
 checkout's root. Public package consumers should use the root package export, not private deep imports.
 
 ## 3. Call the APIs and read their results
@@ -442,8 +445,9 @@ to overwrite an arbitrary location.
   successful compilation as a guarantee that every filesystem write will succeed.
 
 The scratch `Stats` module returns `null` deliberately: this lab studies compilation and artifact
-checks, not frontend rendering. It neither changes the normal single-origin deployment nor
-announces a React, Vue, or Svelte adapter.
+checks, not frontend rendering. The separate candidate React/Vite host fulfills the rendering,
+hydration, navigation, streaming, and cleanup contract; changing a Codegen target alone does not.
+This lab does not add a Vue or Svelte adapter.
 
 ## Continue with the references
 

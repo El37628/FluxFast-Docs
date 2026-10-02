@@ -1,13 +1,15 @@
 ---
 title: "Codegen API"
-description: "Compile backend-owned schemas, inspect validator diagnostics, and generate or check artifacts with the unreleased framework-neutral Codegen package."
+description: "Compile backend-owned schemas, inspect validator diagnostics, and generate or check artifacts with framework-neutral Codegen in the 1.2 release candidate."
 slug: "codegen-api"
 editUrl: "https://github.com/El37628/FluxFast/edit/main/docs/codegen-api.md"
 ---
-`@fluxfast/codegen` is the Node.js, framework-neutral compiler package being
-introduced in **unreleased v1.2**. It is not part of the published v1.1.0 payload.
-Do not install `@fluxfast/codegen@1.1.0` from npm: the workspace's synchronized
-development version is not a publication claim.
+> **Version notice:** This page follows the **1.2.0 release candidate**. The latest published stable release is **1.1.0**; the React/Vite host and new Core server/Codegen entry points are not available in 1.1.0. [Check availability before installing](/FluxFast-Docs/version-guide/).
+
+`@fluxfast/codegen` is the Node.js, framework-neutral compiler package introduced
+in **FluxFast 1.2**. It is not part of the older v1.1.0 payload. See the
+[versioned release notes](/FluxFast-Docs/releases/v1-2-0/) for installation and availability;
+a source version change alone is not evidence of registry publication.
 
 Ordinary Next.js projects should continue using `fluxfast generate`,
 `fluxfast types APP`, and the existing `@fluxfast/next/generate` API. Their
@@ -21,7 +23,7 @@ helpers, filesystem helpers, and private deep imports are not public APIs.
 The separate `fluxfast-codegen` binary is documented below; its private CLI
 implementation is not an importable package API.
 
-## Generic Codegen CLI (unreleased)
+## Generic Codegen CLI
 
 The new binary is named `fluxfast-codegen`, not `fluxfast`. It can be installed
 alongside Next's existing `fluxfast` binary without a package-manager name
@@ -35,11 +37,14 @@ The command and meaningful flags are:
 ```sh
 fluxfast-codegen generate --adapter next --schema-file backend-schema.json
 fluxfast-codegen generate --adapter next --schema-file backend-schema.json --check
+fluxfast-codegen generate --adapter react --schema-file backend-schema.json
+fluxfast-codegen generate --adapter react --schema-file backend-schema.json --check
 ```
 
 | Option | Meaning |
 | --- | --- |
-| `--adapter next` | Selects the Next registry target. `next` is the default and the only currently supported choice; other names fail rather than silently selecting it. |
+| `--adapter next` | Selects the existing Next registry target. `next` remains the default. |
+| `--adapter react` | Selects the shared React registry target, without a Next client directive. Other target names fail rather than silently selecting Next. |
 | `--schema-file PATH` | Reads an authoritative exported manifest relative to the directory where the command was invoked, validates it, and includes its exact bytes in generation or drift checking. |
 | `--check` | Compares expected artifacts without creating directories or changing files. |
 
@@ -49,6 +54,23 @@ without evaluating project configuration. The Next target uses the same root or
 `flux-pages` directory and writes to its `.fluxfast` directory.
 Without `--schema-file`, it reads an existing `.fluxfast/schema.generated.json`;
 if neither schema source exists, it generates or checks only the registry.
+
+The React target uses `src/flux-pages` and `src/.fluxfast` when the project has
+a `src/` directory, otherwise `flux-pages` and `.fluxfast` at the project root.
+Next's `app`/`pages` routing-directory precedence does not apply to React. For
+example, `src/flux-pages/home/index.tsx` exports your `Home` component; generation
+adds a lazy `"home/index"` allowlist entry and a `FluxApplication` wrapper using
+`FluxRoot` from `@fluxfast/react`. FastAPI still selects that identifier and owns
+the URL. The registry is not a filesystem-based browser router.
+
+The five schema-derived files have the same bytes for Next and React. Only
+`pages.generated.ts` changes its runtime import and client-directive policy.
+Compiling a React registry requires the React bindings in the consumer; running
+the compiler does not. React SSR rendering and hydration are documented in
+[React SSR boundaries](/FluxFast-Docs/react-ssr/). Host initialization and serving belong to
+the separate [Vite integration](/FluxFast-Docs/vite-host/), not this compiler target.
+Python 1.2 also provides React generation and host supervision. Both hosts run
+the same [browser conformance contracts](https://github.com/El37628/FluxFast/blob/main/tests/adapter-conformance/README.md).
 
 For a `src/` project with an exported schema whose validators are all supported,
 successful generation prints:
@@ -76,8 +98,18 @@ adapter. Unsupported-validator diagnostics remain visible even when generation
 or checking succeeds; they do not weaken backend validation. Compilation errors
 leave existing artifacts unchanged, and check mode is always read-only.
 
-This CLI is not yet on npm. To exercise it from a source checkout, build Core
-and Codegen first, then invoke the local binary **from the frontend project**:
+After version 1.2.0 is available on npm, install matching build-time packages in
+the frontend and use the installed binary:
+
+```sh
+npm install @fluxfast/core@1.2.0
+npm install --save-dev @fluxfast/codegen@1.2.0
+npm exec --no -- fluxfast-codegen generate --adapter next --schema-file backend-schema.json
+npm exec --no -- fluxfast-codegen generate --adapter next --schema-file backend-schema.json --check
+```
+
+For source development before publication, build Core and Codegen first, then
+invoke the local binary **from the frontend project**:
 
 ```sh
 # In the FluxFast source checkout:
@@ -91,9 +123,9 @@ node /path/to/FluxFast/packages/codegen/bin/fluxfast-codegen.js generate --adapt
 
 The compiler does not need React or Next.js installed to run. Its generated
 Next registry does need the selected runtime when the application compiles and
-renders. The source-development Python `fluxfast types` command now detects the
-Next adapter and prefers this installed binary, with a legacy fallback for older
-JavaScript packages. See the [adapter-aware handoff](/FluxFast-Docs/type-safety/#adapter-aware-handoff-unreleased-v12)
+renders. The Python 1.2 `fluxfast types` command detects the
+Next or React/Vite adapter and prefers this installed binary, with target-specific
+installed fallbacks. Next still supports older JavaScript packages. See the [adapter-aware handoff](/FluxFast-Docs/type-safety/#adapter-aware-handoff-unreleased-v12)
 for explicit selection and mixed-tooling behavior; published v1.1 Python keeps
 its existing command.
 
@@ -105,8 +137,8 @@ Export the manifest from the authoritative FastAPI application first:
 fluxfast schema backend:app --output backend-schema.json
 ```
 
-Then a Node.js tool can inspect or compile it. This example requires the local
-v1.2 source build, not the published v1.1 packages:
+Then a Node.js tool can inspect or compile it. This example requires Codegen 1.2+
+(or its source-built candidate), not the older published v1.1 packages:
 
 ```js
 import fs from "node:fs";

@@ -4,6 +4,8 @@ description: "Move an existing FluxFast application between supported release li
 slug: "migration"
 editUrl: "https://github.com/El37628/FluxFast/edit/main/docs/migration.md"
 ---
+> **Version notice:** This page follows the **1.2.0 release candidate**. The latest published stable release is **1.1.0**; the React/Vite host and new Core server/Codegen entry points are not available in 1.1.0. [Check availability before installing](/FluxFast-Docs/version-guide/).
+
 ## v0.9.x to v1.0.0
 
 FluxFast 1.0 promotes the public contract frozen in v0.9.0. Applications using
