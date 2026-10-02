@@ -8,6 +8,7 @@ const sourceDocs = path.join(sourceRoot, 'docs');
 const outputDocs = path.join(projectRoot, 'src/content/docs');
 
 const descriptions = {
+  'adapter-contract.md': 'Implementation contract for SSR-capable frontend adapters: ownership, hydration, navigation, resource authority, live synchronization, and single-origin production requirements. The multi-adapter foundation is unreleased.',
   'advanced-stable-apis.md': 'Build supported cache, live, transport, protocol, handler, and tooling integrations with lower-level FluxFast APIs.',
   'architecture.md': 'Understand how FastAPI, the resource graph, browser stores, and the Next.js shell divide responsibility.',
   'benchmarking.md': 'Reproduce FluxFast performance measurements and interpret their correctness gates.',

@@ -103,6 +103,7 @@ export default defineConfig({
 						{ label: 'Stable APIs', slug: 'stable-apis' },
 						{ label: 'Advanced Stable APIs', slug: 'advanced-stable-apis' },
 						{ label: 'Advanced API walkthrough', slug: 'advanced-api-walkthrough' },
+						{ label: 'Adapter contract (unreleased)', slug: 'adapter-contract' },
 						{ label: 'Server adapter lab (unreleased)', slug: 'server-api-walkthrough' },
 						{ label: 'Codegen API lab (unreleased)', slug: 'codegen-api-walkthrough' },
 						{ label: 'Python API', slug: 'python-api' },
