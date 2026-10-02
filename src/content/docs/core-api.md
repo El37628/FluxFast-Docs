@@ -20,6 +20,10 @@ Unreleased v1.2 foundation work adds a separate server integration path,
 Server helpers are never re-exported from the browser-facing root; existing
 Next.js applications keep their current imports and behavior.
 
+The [adapter implementation contract](/FluxFast-Docs/adapter-contract/) describes how these
+public primitives fit into an SSR host without duplicating Core's navigation,
+resource, mutation, deferred, or live authority.
+
 Application developers should begin with the [Stable APIs guide](/FluxFast-Docs/stable-apis/).
 Adapter, transport, live-runtime, protocol, and validation-tooling authors
 should also read [Advanced Stable APIs](/FluxFast-Docs/advanced-stable-apis/). This page is
