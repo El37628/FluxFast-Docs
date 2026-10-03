@@ -51,6 +51,12 @@ FluxFast repository, then synchronize it here. Site-specific content such as
 `index.mdx`, `introduction.mdx`, navigation, styling, and deployment workflows is
 owned by this repository.
 
+Application examples currently target the published **FluxFast 1.2.0** packages.
+Before promoting another version in the homepage, navigation, version guide, or
+synchronizer notices, verify PyPI, every required npm package, registry-only
+consumer checks, and the completed GitHub release. A merged source version or
+tag alone is not evidence of publication.
+
 ## Deployment
 
 Pull requests run type/content checks, a production build, and the generated-link

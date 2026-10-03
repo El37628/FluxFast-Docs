@@ -4,7 +4,7 @@ description: "Set up and configure the managed Next.js App Router shell."
 slug: "nextjs-adapter"
 editUrl: "https://github.com/El37628/FluxFast/edit/main/docs/nextjs-adapter.md"
 ---
-> **Version notice:** This page follows the **1.2.0 release candidate**. The latest published stable release is **1.1.0**; the React/Vite host and new Core server/Codegen entry points are not available in 1.1.0. [Check availability before installing](/FluxFast-Docs/version-guide/).
+> **Version notice:** Examples follow stable **FluxFast 1.2.0**. Use matching Python and frontend packages; older 1.1 packages do not provide the React/Vite host or the new Core server/Codegen entry points. [Installation and upgrade steps](/FluxFast-Docs/version-guide/).
 
 FluxFast supports Next.js 16.3+ with React 19 and the App Router. FastAPI remains
 the application router; Next.js supplies the document, bundling, React runtime,

@@ -4,7 +4,7 @@ description: "Build a small typed FluxFast application from installation through
 slug: "getting-started"
 editUrl: "https://github.com/El37628/FluxFast/edit/main/docs/getting-started.md"
 ---
-> **Version notice:** This page follows the **1.2.0 release candidate**. The latest published stable release is **1.1.0**; the React/Vite host and new Core server/Codegen entry points are not available in 1.1.0. [Check availability before installing](/FluxFast-Docs/version-guide/).
+> **Version notice:** Examples follow stable **FluxFast 1.2.0**. Use matching Python and frontend packages; older 1.1 packages do not provide the React/Vite host or the new Core server/Codegen entry points. [Installation and upgrade steps](/FluxFast-Docs/version-guide/).
 
 This guide builds a small FluxFast application from an empty directory. It
 uses FastAPI for routes, resources, mutations, and validation, and a Next.js 16

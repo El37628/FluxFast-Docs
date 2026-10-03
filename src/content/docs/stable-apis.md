@@ -4,7 +4,7 @@ description: "Choose and use the supported FluxFast APIs intended for ordinary a
 slug: "stable-apis"
 editUrl: "https://github.com/El37628/FluxFast/edit/main/docs/stable-apis.md"
 ---
-> **Version notice:** This page follows the **1.2.0 release candidate**. The latest published stable release is **1.1.0**; the React/Vite host and new Core server/Codegen entry points are not available in 1.1.0. [Check availability before installing](/FluxFast-Docs/version-guide/).
+> **Version notice:** Examples follow stable **FluxFast 1.2.0**. Use matching Python and frontend packages; older 1.1 packages do not provide the React/Vite host or the new Core server/Codegen entry points. [Installation and upgrade steps](/FluxFast-Docs/version-guide/).
 
 Stable APIs are the default surface for application developers. Use them to
 define FastAPI-owned pages and resources, generate frontend types, render data,

@@ -4,7 +4,7 @@ description: "Maintainer workflow for validating and publishing synchronized Flu
 slug: "releasing"
 editUrl: "https://github.com/El37628/FluxFast/edit/main/docs/releasing.md"
 ---
-> **Version notice:** This page follows the **1.2.0 release candidate**. The latest published stable release is **1.1.0**; the React/Vite host and new Core server/Codegen entry points are not available in 1.1.0. [Check availability before installing](/FluxFast-Docs/version-guide/).
+> **Version notice:** Examples follow stable **FluxFast 1.2.0**. Use matching Python and frontend packages; older 1.1 packages do not provide the React/Vite host or the new Core server/Codegen entry points. [Installation and upgrade steps](/FluxFast-Docs/version-guide/).
 
 ## Historical release snapshots
 
@@ -64,6 +64,14 @@ After registry publication, the release workflow repeats both complete upgrade
 and rollback orders against both baselines using only registry packages. The
 GitHub release is created only after these registry-backed compatibility checks
 and the matched Next and React production consumers pass.
+
+Before the published DevTools/Next consumer installs its packages, it waits for
+all six npm distributions in both the full package index and npm's abbreviated
+install metadata. A version endpoint or DevTools becoming available does not
+prove that the other packages have propagated. Only HTTP 404 or a missing
+target version receives bounded retries; authentication, network, other HTTP,
+and malformed-metadata errors fail immediately. Installation prefers fresh
+registry metadata, and the existing version and production checks still run.
 
 A release that changes typed contracts or code generation must also prove the
 developer-tooling path from built artifacts: install the wheel and npm

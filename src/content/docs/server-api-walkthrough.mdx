@@ -1,22 +1,22 @@
 ---
-title: Server adapter API walkthrough (1.2 candidate)
-description: Test the candidate framework-neutral server helpers against a real FastAPI backend, with initial-page, proxy, validation, missing-page, and failure outputs.
+title: Server adapter API walkthrough
+description: Test the published framework-neutral server helpers against a real FastAPI backend, with initial-page, proxy, validation, missing-page, and failure outputs.
 ---
 
 import { Aside } from '@astrojs/starlight/components';
 
-This page explains the **1.2.0 candidate's server APIs** on FluxFast's `main` branch.
+This page explains the **server APIs published in FluxFast 1.2.0**.
 It is for adapter authors and maintainers, not a replacement setup for ordinary applications.
 The examples show what goes into each server API, what comes back, and which responsibilities
 remain with FastAPI and the rendering host.
 
-<Aside type="caution" title="Not available in published 1.1.0 packages">
-  Installing `@fluxfast/core@1.1.0` does not provide `@fluxfast/core/server`. The lab below uses
-  a built source checkout deliberately. Do not patch `node_modules`, import package internals
-  in an application, or replace your generated Next.js handlers. Published applications should
-  continue using `@fluxfast/next/server` and the [normal API walkthrough](/FluxFast-Docs/api-walkthrough/).
-  The 1.2.0 source is prepared, but publication is pending; check the
-  [version guide](/FluxFast-Docs/version-guide/) before installing a new package.
+<Aside type="caution" title="Requires Core 1.2 or later">
+  Installing `@fluxfast/core@1.1.0` does not provide `@fluxfast/core/server`. Install the public
+  `@fluxfast/core@1.2.0` package for this lab; no source checkout is needed. Do not patch
+  `node_modules`, import package internals, or replace generated Next.js handlers. Ordinary
+  applications should use the [Next.js walkthrough](/FluxFast-Docs/api-walkthrough/) or
+  [React/Vite tutorial](/FluxFast-Docs/react-getting-started/). See the
+  [version guide](/FluxFast-Docs/version-guide/) for matched application installation.
 </Aside>
 
 ## What are these helpers for?
@@ -64,23 +64,21 @@ This is a public, single-process teaching backend. It is not a persistence, auth
 or production deployment template. Using it also demonstrates that the new server helpers
 still consume the existing `fluxfast/1` protocol; the protocol is not renamed to match a package version.
 
-## 2. Build the candidate Core package
+## 2. Install the published Core package
 
-In another terminal, use Node.js 22 or 24 and a separate FluxFast source checkout:
+In another terminal, use Node.js 22 or 24 and a separate teaching directory:
 
 ```bash
-git clone https://github.com/El37628/FluxFast.git fluxfast-source
-cd fluxfast-source
-corepack pnpm install --frozen-lockfile
-corepack pnpm --filter @fluxfast/core build
+mkdir fluxfast-server-lab
+cd fluxfast-server-lab
+npm init -y
+npm install @fluxfast/core@1.2.0
 ```
 
-The repository build uses pnpm; that does not require your consuming application to use pnpm.
 For the new React/Vite application's standard SSR setup, use the
 [React tutorial](/FluxFast-Docs/react-getting-started/) instead of writing a custom server lab.
-Create `server-lab.mjs` **at this checkout's root**, using the complete example below.
-Its relative import targets the local build only because the new entry point has not been
-published. The intended package import for a release that provides this entry point is:
+Create `server-lab.mjs` **in this teaching directory**, using the complete example below.
+The server helpers are exported through the public subentry:
 
 ```ts
 import { fetchFluxInitialPage, createFluxTransportProxy } from "@fluxfast/core/server";
@@ -94,7 +92,7 @@ import {
   fetchFluxInitialPage,
   removeFluxHopByHopHeaders,
   selectFluxForwardHeaders,
-} from "./packages/core/dist/esm/server/index.js";
+} from "@fluxfast/core/server";
 
 const backendUrl = process.env.FLUXFAST_LAB_URL ?? "http://127.0.0.1:8000";
 const print = (label, value) => console.log(label, JSON.stringify(value));
@@ -191,7 +189,7 @@ const clean = removeFluxHopByHopHeaders({
 print("streamHeaders", Object.fromEntries(clean));
 ```
 
-Run it from the source checkout's root:
+Run it from `fluxfast-server-lab/`:
 
 ```bash
 node server-lab.mjs
@@ -211,8 +209,9 @@ invalidPath {"status":400,"body":{"error":{"code":"invalid_transport_path","mess
 streamHeaders {"cache-control":"no-cache, no-transform","content-type":"text/event-stream"}
 ```
 
-These results were verified against [source commit `abee823`](https://github.com/El37628/FluxFast/commit/abee823838edde22f669107aef5902eb591cd8c8)
-with the published Python `fluxfast==1.1.0` backend. They do not imply that a v1.2 package has been released.
+The lab deliberately uses the published Python `fluxfast==1.1.0` teaching backend with
+`@fluxfast/core@1.2.0` to demonstrate adjacent-version protocol compatibility. A normal new
+application should install matching 1.2.0 packages as shown in the host quickstarts.
 
 Restart the teaching backend before reproducing the exact counter values. If you chose another
 loopback port for Uvicorn, set the same address for this lab:

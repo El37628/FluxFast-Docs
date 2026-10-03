@@ -1,10 +1,10 @@
 ---
 title: "React SSR with Vite"
-description: "Initialize, generate, diagnose, build, and run the single-origin React/Vite SSR host from the 1.2 release candidate."
+description: "Initialize, generate, diagnose, build, and run the single-origin React/Vite SSR host from FluxFast 1.2."
 slug: "vite-host"
 editUrl: "https://github.com/El37628/FluxFast/edit/main/docs/vite-host.md"
 ---
-> **Version notice:** This page follows the **1.2.0 release candidate**. The latest published stable release is **1.1.0**; the React/Vite host and new Core server/Codegen entry points are not available in 1.1.0. [Check availability before installing](/FluxFast-Docs/version-guide/).
+> **Version notice:** Examples follow stable **FluxFast 1.2.0**. Use matching Python and frontend packages; older 1.1 packages do not provide the React/Vite host or the new Core server/Codegen entry points. [Installation and upgrade steps](/FluxFast-Docs/version-guide/).
 
 `@fluxfast/vite` is the complete React SSR host introduced in **FluxFast 1.2**.
 This host implements development compilation/HMR, production client/SSR builds,
