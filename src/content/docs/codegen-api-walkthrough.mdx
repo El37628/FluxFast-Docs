@@ -1,19 +1,20 @@
 ---
-title: Codegen API walkthrough (1.2 candidate)
+title: Codegen API walkthrough
 description: Compile an actual FastAPI schema, inspect generated source and validation diagnostics, and generate or check six artifacts with exact API inputs and outputs.
 ---
 
 import { Aside } from '@astrojs/starlight/components';
 
-This lab explains the **1.2.0 candidate's Codegen APIs** on FluxFast's `main` branch.
-It is for adapter authors, build-tool authors, and maintainers. Ordinary applications should keep
-using `fluxfast types APP`, `fluxfast generate`, and the supported Next.js setup.
+This lab explains the **Codegen APIs published in FluxFast 1.2.0**.
+It is for adapter authors, build-tool authors, and maintainers. Ordinary applications should use
+`fluxfast types APP` and their host's supported generation CLI: `fluxfast generate` for Next.js
+or `fluxfast-vite generate` for React/Vite. The host prepares the correct registry target.
 
-<Aside type="caution" title="Not an npm package available in v1.1.0">
-  `@fluxfast/codegen` is not included in the published v1.1.0 release. The source version is now
-  `1.2.0`, but publication is pending. Build the source below;
-  do not run `npm install @fluxfast/codegen@1.1.0` or copy private compiler files into an application.
-  Check the [version guide](/FluxFast-Docs/version-guide/) before installing the candidate.
+<Aside type="caution" title="Codegen starts at 1.2.0">
+  Install `@fluxfast/codegen@1.2.0` for this lab. There is no `@fluxfast/codegen@1.1.0` package;
+  do not substitute a bootstrap prerelease or copy private compiler files into an application.
+  The lab does not need a source checkout. See the [version guide](/FluxFast-Docs/version-guide/)
+  for matched application installation.
 </Aside>
 
 ## What does Codegen do?
@@ -25,7 +26,7 @@ run a mutation, or authorize a user.
 
 Codegen also scans page modules and renders a registry when you supply an explicit runtime target.
 The Next.js wrapper selects its existing runtime exports and client directive automatically.
-The candidate React/Vite wrapper selects `@fluxfast/react` without a Next client directive.
+The React/Vite wrapper selects `@fluxfast/react` without a Next client directive.
 The [React tutorial](/FluxFast-Docs/react-getting-started/) uses that application workflow.
 The shared scanner does not install a runtime or implement a new frontend adapter: its current
 registry template is React-style. This lab uses the Next target and actual source page files.
@@ -66,32 +67,30 @@ not require renaming the schema or the `fluxfast/1` wire protocol.
 Do not hand-write the manifest or edit its fingerprint in a real project. Backend declarations
 are the authoritative input; use schema export and regeneration after changing them.
 
-## 2. Build the candidate compiler
+## 2. Install the published compiler
 
-Use Node.js 22 or 24. In the directory containing `fluxfast-api-lab/`, create a separate checkout:
+Use Node.js 22 or 24. In the directory containing `fluxfast-api-lab/`, create a separate teaching directory:
 
 ```bash
-git clone https://github.com/El37628/FluxFast.git fluxfast-source
-cd fluxfast-source
-corepack pnpm install --frozen-lockfile
-corepack pnpm --filter @fluxfast/core build
-corepack pnpm --filter @fluxfast/codegen build
+mkdir fluxfast-codegen-lab
+cd fluxfast-codegen-lab
+npm init -y
+npm install --save-dev @fluxfast/codegen@1.2.0
 ```
 
-The source repository uses pnpm; a consuming application can still use npm. Core builds first so
-the compiler can resolve its public **type-only** dependency. Codegen itself does not execute Core
-while compiling schema. The intended package import, once a release publishes it, is:
+Codegen is a build-time dependency. Its compiler does not execute Core while compiling schema,
+and the generated runtime imports are not executed by this teaching script. Use the public export:
 
 ```ts
 import { parseFluxFastSchemaManifest, generateFluxFastProject } from "@fluxfast/codegen";
 ```
 
-While publication is pending, the complete script below imports the local build relative to the
-checkout's root. Public package consumers should use the root package export, not private deep imports.
+No local package build is required. Public package consumers should use the root package export,
+not private deep imports.
 
 ## 3. Call the APIs and read their results
 
-Create `codegen-lab.mjs` **at the source checkout's root**:
+Create `codegen-lab.mjs` **in `fluxfast-codegen-lab/`**:
 
 ```js title="codegen-lab.mjs"
 import fs from "node:fs";
@@ -110,7 +109,7 @@ import {
   parseFluxFastSchemaManifest,
   SchemaManifestValidationError,
   ValidatorCompilationError,
-} from "./packages/codegen/dist/esm/index.js";
+} from "@fluxfast/codegen";
 
 const print = (label, value) => console.log(label, JSON.stringify(value));
 const schemaPath = path.resolve(process.argv[2] ?? "../fluxfast-api-lab/backend-schema.json");
@@ -226,7 +225,7 @@ print("afterRegeneration", { current: checkFluxFastProject(revised).current });
 console.error(`Scratch artifacts: ${generatedDir}`);
 ```
 
-Run it from that checkout's root:
+Run it from `fluxfast-codegen-lab/`:
 
 ```bash
 node codegen-lab.mjs ../fluxfast-api-lab/backend-schema.json
@@ -253,9 +252,10 @@ afterRegeneration {"current":true}
 Standard error prints the scratch directory, which varies by machine and run. Open that directory
 to inspect the generated source. This lab does not modify your application's `.fluxfast` files.
 
-These results were verified against [source commit `c3c8e74`](https://github.com/El37628/FluxFast/commit/c3c8e741f055a3287ef30452d9f93558be2a0b87)
-using schema exported by the published Python `fluxfast==1.1.0` package. For an exact reproduction
-after `main` changes, check out that commit in the separate teaching checkout before building.
+The lab uses `@fluxfast/codegen@1.2.0` with schema exported by the published Python
+`fluxfast==1.1.0` teaching backend. The `producer` above names the backend distribution, not the
+compiler. A normal new application should use matching 1.2.0 packages; its producer would be
+`1.2.0` while the schema identifier remains `fluxfast-schema/2`.
 
 ## 4. Understand the generated code
 
@@ -445,7 +445,7 @@ to overwrite an arbitrary location.
   successful compilation as a guarantee that every filesystem write will succeed.
 
 The scratch `Stats` module returns `null` deliberately: this lab studies compilation and artifact
-checks, not frontend rendering. The separate candidate React/Vite host fulfills the rendering,
+checks, not frontend rendering. The separate React/Vite host fulfills the rendering,
 hydration, navigation, streaming, and cleanup contract; changing a Codegen target alone does not.
 This lab does not add a Vue or Svelte adapter.
 

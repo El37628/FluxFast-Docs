@@ -8,12 +8,12 @@ const sourceDocs = path.join(sourceRoot, 'docs');
 const outputDocs = path.join(projectRoot, 'src/content/docs');
 
 const descriptions = {
-  'adapter-contract.md': 'Implementation contract for SSR-capable frontend adapters: ownership, hydration, navigation, resource authority, live synchronization, and single-origin production requirements in the 1.2 release candidate.',
+  'adapter-contract.md': 'Implementation contract for SSR-capable frontend adapters: ownership, hydration, navigation, resource authority, live synchronization, and single-origin production requirements in FluxFast 1.2.',
   'advanced-stable-apis.md': 'Build supported cache, live, transport, protocol, handler, and tooling integrations with lower-level FluxFast APIs.',
   'architecture.md': 'Understand how FastAPI, the resource graph, browser stores, and the Next.js or React/Vite host divide responsibility.',
   'benchmarking.md': 'Reproduce FluxFast performance measurements and interpret their correctness gates.',
   'caching.md': 'Configure server and browser caching without leaking data across users or tenants.',
-  'codegen-api.md': 'Compile backend-owned schemas, inspect validator diagnostics, and generate or check artifacts with framework-neutral Codegen in the 1.2 release candidate.',
+  'codegen-api.md': 'Compile backend-owned schemas, inspect validator diagnostics, and generate or check artifacts with framework-neutral Codegen in FluxFast 1.2.',
   'containers.md': 'Package and run FluxFast with Docker or rootless Podman.',
   'contracts.md': 'Declare reusable application types and generate TypeScript from Python.',
   'core-api.md': 'Public API and stability classification for @fluxfast/core.',
@@ -40,14 +40,14 @@ const descriptions = {
   'releases/v1.0.0.md': 'Release notes for the first stable FluxFast release and its frozen compatibility contracts.',
   'releases/v1.0.1.md': 'Release notes for the routable Next.js handlers and generated agent knowledge shipped in FluxFast 1.0.1.',
   'releases/v1.1.0.md': 'Release notes for the optional development DevTools package introduced in FluxFast 1.1.0.',
-  'releases/v1.2.0.md': 'Capabilities, installation requirements, and publication checks for the FluxFast 1.2.0 React/Vite release candidate.',
+  'releases/v1.2.0.md': 'Capabilities, installation requirements, and release verification for the stable FluxFast 1.2.0 React/Vite host.',
   'stable-apis.md': 'Choose and use the supported FluxFast APIs intended for ordinary application development.',
   'stability.md': 'The compatibility promises and public surfaces covered by FluxFast 1.x.',
   'type-safety.md': 'Generate typed resources, routes, mutations, and validators from backend declarations.',
   'upgrade-v1.md': 'A focused checklist for upgrading from v0.9.x to v1.0.0.',
   'validation.md': 'Run generated validation plans in the browser and map issues into forms.',
   'versioning.md': 'How package, protocol, and developer-schema versions evolve.',
-  'vite-host.md': 'Initialize, generate, diagnose, build, and run the single-origin React/Vite SSR host from the 1.2 release candidate.',
+  'vite-host.md': 'Initialize, generate, diagnose, build, and run the single-origin React/Vite SSR host from FluxFast 1.2.',
 };
 
 const sourceFiles = (await readdir(sourceDocs, { withFileTypes: true }))
@@ -80,15 +80,14 @@ for (const relativePath of sourceFiles.sort()) {
   body = body.replace(/^#\s+.+\r?\n+/, '');
   body = rewriteRepositoryLinks(body, sourcePath);
 
-  // Website availability is separate from the source API's compatibility tier.
-  // Keep candidate instructions honest until all registries and the GitHub
-  // release are published; historical release notes and ADRs retain their dates.
+  // Pin application examples to the verified published release. Historical
+  // release notes and ADRs retain their original versions and audit facts.
   if (!relativePath.startsWith(`releases${path.sep}`) &&
       !relativePath.startsWith(`decisions${path.sep}`)) {
-    body = '> **Version notice:** This page follows the **1.2.0 release candidate**. '
-      + 'The latest published stable release is **1.1.0**; the React/Vite host and new '
-      + 'Core server/Codegen entry points are not available in 1.1.0. '
-      + '[Check availability before installing](/FluxFast-Docs/version-guide/).\n\n' + body;
+    body = '> **Version notice:** Examples follow stable **FluxFast 1.2.0**. '
+      + 'Use matching Python and frontend packages; older 1.1 packages do not provide '
+      + 'the React/Vite host or the new Core server/Codegen entry points. '
+      + '[Installation and upgrade steps](/FluxFast-Docs/version-guide/).\n\n' + body;
   }
 
   const description = descriptions[relativePath] ?? `Design record and verification material for ${title}.`;

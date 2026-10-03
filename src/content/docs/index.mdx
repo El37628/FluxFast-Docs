@@ -1,10 +1,10 @@
 ---
 title: FluxFast documentation
-description: Build server-driven React applications with FastAPI ownership, the published Next.js host, and the React/Vite release candidate.
+description: Build server-driven React applications with FastAPI ownership and stable Next.js or React/Vite SSR hosts.
 template: splash
 hero:
   title: Your FastAPI app, rendered at interface speed.
-  tagline: FluxFast keeps routing, authorization, validation, and data loading on the backend while Next.js renders a typed, reactive frontend from one public origin.
+  tagline: FluxFast keeps routing, authorization, validation, and data loading on the backend while Next.js or React/Vite renders a typed, reactive frontend from one public origin.
   actions:
     - text: Build your first page
       link: ./getting-started/
@@ -18,13 +18,14 @@ hero:
 
 import { Aside, Card, CardGrid, LinkCard } from '@astrojs/starlight/components';
 
-<p class="eyebrow">Stable v1.1 · FastAPI + Next.js</p>
+<p class="eyebrow">Stable v1.2 · FastAPI + Next.js or React/Vite</p>
 
-<Aside type="note" title="React / Vite is the 1.2.0 release candidate">
-  The new host supports server rendering, hydration, navigation, same-origin HMR, and managed
-  production startup without Next.js. Publication is still pending: the latest published stable
-  release is 1.1.0. Explore the [complete React tutorial](./react-getting-started/) and
-  [check package availability](./version-guide/) before installing its 1.2.0 dependencies.
+<Aside type="note" title="Choose your frontend host">
+  FluxFast 1.2.0 supports both Next.js and a standalone React/Vite SSR host. Each supports server
+  rendering, hydration, navigation, and managed single-origin startup. Follow the
+  [Next.js quickstart](./getting-started/) or the [complete React tutorial](./react-getting-started/),
+  and [install matching 1.2.0 packages](./version-guide/). Existing Next.js applications do not
+  need to switch hosts.
 </Aside>
 
 ## One owner for application behavior
@@ -32,7 +33,7 @@ import { Aside, Card, CardGrid, LinkCard } from '@astrojs/starlight/components';
 FluxFast is a server-driven application runtime, not a second API framework. Your FastAPI
 application remains the authority for every route and every permission decision. The browser
 receives a page envelope containing an allowlisted component name and independently managed
-resources, then renders it through the Next.js adapter.
+resources, then renders it through your chosen frontend host.
 
 <div class="architecture-flow" role="list" aria-label="FluxFast request flow">
   <div class="architecture-node" role="listitem">
@@ -44,7 +45,7 @@ resources, then renders it through the Next.js adapter.
     <p>Page envelopes, resource versions, deferred loading, invalidation, live events, and generated contracts.</p>
   </div>
   <div class="architecture-node" role="listitem">
-    <strong>3. Next.js renders</strong>
+    <strong>3. Your frontend host renders</strong>
     <p>Allowlisted React modules consume typed stores and update without duplicating backend policy.</p>
   </div>
 </div>
@@ -59,7 +60,7 @@ resources, then renders it through the Next.js adapter.
     declarations—and fail CI when generated files drift.
   </Card>
   <Card title="Single-origin runtime" icon="seti:config">
-    Run one production command. Next.js exposes the public application origin and health endpoints;
+    Run one production command. The chosen host exposes the public application origin and health endpoints;
     FastAPI stays private. FluxFast supervises both processes and their shutdown lifecycle.
   </Card>
   <Card title="Scoped synchronization" icon="refresh">
@@ -111,6 +112,9 @@ identity—not from a browser-supplied ID.
 
 Generate the contract, then consume the store in a registered React component:
 
+This example uses the Next.js host. The [React/Vite tutorial](./react-getting-started/) shows the
+equivalent `@fluxfast/react` imports and adapter-aware generation.
+
 ```tsx title="frontend/src/flux-pages/dashboard/index.tsx"
 'use client';
 
@@ -148,7 +152,7 @@ complete application with forms, deferred loading, live updates, and the corresp
 request/response examples.
 
 <Aside type="tip" title="No frontend backend URL is required">
-  During development and production, the browser talks to the Next.js origin. The managed adapter
+  During development and production, the browser talks to the frontend host's origin. The managed adapter
   forwards FluxFast transport requests internally, so the application does not require a second
   public port or a browser CORS policy.
 </Aside>
@@ -165,9 +169,9 @@ request/response examples.
 <div class="release-band">
   <div>
     <p class="eyebrow">Current stable release</p>
-    <p><strong>FluxFast 1.1.0</strong> adds optional, bounded development DevTools while preserving the stable v1 protocol and production runtime behavior.</p>
+    <p><strong>FluxFast 1.2.0</strong> adds React/Vite SSR, shared React bindings, and framework-neutral Codegen while preserving the stable v1 protocol and existing Next.js applications.</p>
   </div>
-  <a href="./releases/v1-1-0/">Read the release notes →</a>
+  <a href="./releases/v1-2-0/">Read the release notes →</a>
 </div>
 
 ## Follow a path
@@ -175,7 +179,7 @@ request/response examples.
 <CardGrid>
   <LinkCard
     title="I want React without Next.js"
-    description="Explore the 1.2 candidate's complete FastAPI + React/Vite tutorial, with typed page code, UI/API output, and development and production commands."
+    description="Build a FastAPI + React/Vite application with typed page code, UI/API output, and development and production commands."
     href="./react-getting-started/"
   />
   <LinkCard

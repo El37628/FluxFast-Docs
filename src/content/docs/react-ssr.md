@@ -4,7 +4,7 @@ description: "Render a server-selected React page from a validated envelope and 
 slug: "react-ssr"
 editUrl: "https://github.com/El37628/FluxFast/edit/main/docs/react-ssr.md"
 ---
-> **Version notice:** This page follows the **1.2.0 release candidate**. The latest published stable release is **1.1.0**; the React/Vite host and new Core server/Codegen entry points are not available in 1.1.0. [Check availability before installing](/FluxFast-Docs/version-guide/).
+> **Version notice:** Examples follow stable **FluxFast 1.2.0**. Use matching Python and frontend packages; older 1.1 packages do not provide the React/Vite host or the new Core server/Codegen entry points. [Installation and upgrade steps](/FluxFast-Docs/version-guide/).
 
 This reference is for host authors using FluxFast **1.2 or later**. Ordinary
 applications should use the complete [React/Vite tutorial](/FluxFast-Docs/react-getting-started/)

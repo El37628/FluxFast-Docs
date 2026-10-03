@@ -7,10 +7,10 @@ import { Aside, Card, CardGrid, LinkCard, Steps, Tabs, TabItem } from '@astrojs/
 
 FluxFast helps you build a React interface without turning your frontend into a second application
 server. FastAPI remains the place where URLs, permissions, validation, and data ownership live.
-Next.js is the published rendering shell. The **1.2.0 release candidate** also provides a
-React/Vite SSR host without Next.js. FluxFast connects either host to FastAPI with the same
-versioned envelope and reactive resource stores. Check the [version guide](/FluxFast-Docs/version-guide/)
-before installing: 1.1.0 is still the latest published stable release.
+FluxFast **1.2.0** provides both a Next.js rendering shell and a standalone React/Vite SSR host.
+FluxFast connects either host to FastAPI with the same versioned envelope and reactive resource
+stores. The [version guide](/FluxFast-Docs/version-guide/) explains matched package installation
+and upgrades from earlier stable releases.
 
 If you have used Inertia, the first request will feel familiar: the server chooses a component and
 sends its data. FluxFast extends that model by making data resources independently versioned,
@@ -162,7 +162,7 @@ the transport endpoints. The Python CLI supervises both processes; Next.js expos
 and forwards transport requests to private FastAPI. It also gives health checks and shutdown a
 single lifecycle owner. You still have two internal processes, not two public origins.
 
-The 1.2.0 candidate's React/Vite host uses the same topology and Python supervision. Vite provides
+The React/Vite host introduced in 1.2.0 uses the same topology and Python supervision. Vite provides
 development HMR; a checked, built React SSR host serves production without evaluating the source
 configuration or loading Vite/Codegen at startup. Follow the
 [React tutorial](/FluxFast-Docs/react-getting-started/) for the separate setup and expected results.
@@ -173,7 +173,7 @@ Do not install both Next and Vite host packages in one frontend; use separate fr
 Use FluxFast when:
 
 - your domain logic and security already belong in FastAPI;
-- you want React through the published Next.js host, or the candidate React/Vite host;
+- you want React through either the Next.js host or the standalone React/Vite host;
 - pages share data that should survive navigation;
 - typed Python contracts should drive frontend types and validation;
 - some resources benefit from progressive or live delivery;
@@ -190,7 +190,7 @@ application correctness. Install it as a development dependency and mount it ins
 provider:
 
 ```bash
-npm install --save-dev @fluxfast/devtools@1.1.0
+npm install --save-dev @fluxfast/devtools@1.2.0
 ```
 
 ```tsx
@@ -214,7 +214,7 @@ for the full provider example, panel semantics, safety limits, and troubleshooti
 
 <CardGrid>
   <LinkCard title="Build the tutorial" href="/FluxFast-Docs/getting-started/" description="Create a complete page, shared resource, mutation, generated contract, and production build." />
-  <LinkCard title="Explore React without Next.js" href="/FluxFast-Docs/react-getting-started/" description="Build the 1.2 candidate's typed React/Vite application and compare its rendered UI and actual API responses." />
+  <LinkCard title="Explore React without Next.js" href="/FluxFast-Docs/react-getting-started/" description="Build a typed React/Vite application and compare its rendered UI and actual API responses." />
   <LinkCard title="Follow the APIs end to end" href="/FluxFast-Docs/api-walkthrough/" description="Read runnable code, actual envelope shapes, and the expected UI behavior for each operation." />
   <LinkCard title="Understand advanced integrations" href="/FluxFast-Docs/advanced-api-walkthrough/" description="Run direct transport, store, validation, and diagnostics APIs against a real backend and compare their results." />
   <LinkCard title="Check versions before upgrading" href="/FluxFast-Docs/version-guide/" description="Install matched published packages and distinguish available APIs from unreleased development work." />

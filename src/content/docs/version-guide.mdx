@@ -1,14 +1,19 @@
 ---
 title: Versions and upgrading
-description: Install matched published FluxFast packages and distinguish the complete React/Vite 1.2 release candidate from registry availability.
+description: Install matching FluxFast 1.2 packages, choose Next.js or React/Vite, and safely upgrade an existing application.
 ---
 
 import { Aside } from '@astrojs/starlight/components';
 
-The latest published stable release covered by the runnable tutorials is **FluxFast 1.1.0**.
-The documentation also imports reviewed development material from the application repository's
-`main` branch. The **1.2.0 release candidate** is implemented and checked, but is not published yet.
-Its source version and documentation are not a promise that its packages can be installed today.
+The latest published stable release covered by these tutorials is **FluxFast 1.2.0**.
+It includes the existing Next.js host and the new standalone React/Vite SSR host. Python and
+all six npm packages are published at the same version. Choose one frontend host per application;
+you do not need to install both.
+
+Publication and registry-only consumers were verified by the
+[v1.2.0 release workflow](https://github.com/El37628/FluxFast/actions/runs/37090229525).
+The [GitHub release](https://github.com/El37628/FluxFast/releases/tag/v1.2.0) contains the wheel,
+source distribution, six npm tarballs, and their checksums.
 
 <Aside type="caution" title="Stable classification is not a publication notice">
   An API's compatibility classification describes its supported contract. It does not mean a new
@@ -25,28 +30,27 @@ On narrow screens, scroll the table horizontally to compare all three columns.
 | --- | --- | --- |
 | [1.0.0](/FluxFast-Docs/releases/v1-0-0/) | Published stable | The stable FastAPI, Core, and Next.js contracts, typed generation, forms, deferred/live resources, and managed production runtime. |
 | [1.0.1](/FluxFast-Docs/releases/v1-0-1/) | Published stable | Routable generated Next.js handlers and project-local agent integration knowledge. |
-| [1.1.0](/FluxFast-Docs/releases/v1-1-0/) | Latest published stable documented here | Optional development DevTools and bounded runtime/server observations. Existing application APIs remain compatible. |
-| [1.2.0 candidate](/FluxFast-Docs/releases/v1-2-0/) | Implemented and checked; publication pending | A complete React/Vite SSR host, shared React bindings, framework-neutral Codegen and Core server APIs, adapter-aware Python generation/supervision, and compatible Next.js integration. It is not a React host available through Python or npm 1.1.0 packages. |
+| [1.1.0](/FluxFast-Docs/releases/v1-1-0/) | Published stable; previous release | Optional development DevTools and bounded runtime/server observations. Existing application APIs remain compatible. |
+| [1.2.0](/FluxFast-Docs/releases/v1-2-0/) | Latest published stable documented here | A complete React/Vite SSR host, shared React bindings, framework-neutral Codegen and Core server APIs, adapter-aware Python generation/supervision, and compatible Next.js integration. |
 
 The [Core reference](/FluxFast-Docs/core-api/#server-adapter-primitives-fluxfast-12) describes
-the new server helpers. Until a release publishes them, ordinary applications should keep
-their existing `@fluxfast/next/server` integration and generated handlers. Do not copy development
-files into `node_modules` or import private package internals to make an unavailable API work.
+the new server helpers, introduced in 1.2. Ordinary Next.js applications should keep their existing
+`@fluxfast/next/server` integration and generated handlers; adapter authors can use the new public
+entry point. Do not copy development files into `node_modules` or import private package internals.
 
 Adapter authors can use the [Server adapter API walkthrough](/FluxFast-Docs/server-api-walkthrough/)
-to test the source-built development helpers against a real backend. It includes API calls and
-expected page, mutation, validation, missing-page, and path-rejection results. It is not an upgrade
-instruction for a published v1.1 application.
+to test the published helpers against a real backend. It includes API calls and expected page,
+mutation, validation, missing-page, and path-rejection results. Application setup still belongs
+in the host quickstart, not in a custom proxy implementation.
 
 The [Codegen API lab](/FluxFast-Docs/codegen-api-walkthrough/) shows the new offline compiler
 boundary with real exported backend schema, exact API results, unsupported-validator diagnostics,
 and read-only drift checks, including an explicit runtime target and a read-only page registry
 scanner. The Next wrapper selects the existing Next target for applications automatically.
-`@fluxfast/codegen` is also **unpublished**: its source workspace now
-uses `1.2.0`, but there is no published `@fluxfast/codegen@1.1.0` package.
-Use the source-build instructions in that lab rather than an npm installation command.
+`@fluxfast/codegen` starts at **1.2.0**; there is no `@fluxfast/codegen@1.1.0` package.
+The walkthrough uses the published root export without a source checkout.
 
-## Prepare for the React / Vite host
+## Install the React / Vite host
 
 The [React tutorial](/FluxFast-Docs/react-getting-started/) starts from an empty directory and
 shows complete backend and page files, generated typed resource imports, rendered output,
@@ -60,7 +64,7 @@ and build-time Codegen/Vite. Python 1.1.0 is not the supervisor for this host. D
 an older package, a bootstrap prerelease, or a private file import if a version is missing.
 Next.js applications keep their existing adapter; do not add `@fluxfast/vite` to a Next frontend.
 
-### Confirm publication before installing 1.2.0
+### Verify package availability
 
 Check the [GitHub release](https://github.com/El37628/FluxFast/releases/tag/v1.2.0),
 [PyPI](https://pypi.org/project/fluxfast/1.2.0/), and every npm package:
@@ -78,22 +82,22 @@ Every npm command must print `1.2.0`; the Python release and completed GitHub re
 exist. A 404 or missing version means publication is not complete, not that you should bypass
 the check. The release workflow verifies registry-only consumers before creating the GitHub
 release. See the [1.2.0 notes](/FluxFast-Docs/releases/v1-2-0/) for installation and upgrade steps
-**after** that confirmation. Until then, use the published Next.js baseline below.
+after that confirmation. Pin stable `1.2.0` explicitly rather than a setup-only bootstrap prerelease.
 
-## Install matched v1.1 packages
+## Install matched Next.js packages
 
 Activate your application's Python environment and run this from its root:
 
 ```bash
-python -m pip install --upgrade "fluxfast==1.1.0"
+python -m pip install --upgrade "fluxfast==1.2.0"
 cd frontend
-npm install @fluxfast/core@1.1.0 @fluxfast/next@1.1.0
+npm install @fluxfast/core@1.2.0 @fluxfast/next@1.2.0
 ```
 
 The optional inspector belongs in the frontend's development dependencies:
 
 ```bash
-npm install --save-dev @fluxfast/devtools@1.1.0
+npm install --save-dev @fluxfast/devtools@1.2.0
 cd ..
 ```
 
@@ -108,8 +112,8 @@ python -c 'from importlib.metadata import version; print(version("fluxfast"))'
 npm --prefix frontend ls @fluxfast/core @fluxfast/next @fluxfast/devtools --depth=0
 ```
 
-The Python command should print `1.1.0`. The npm listing should show `@fluxfast/core@1.1.0`,
-`@fluxfast/next@1.1.0`, and `@fluxfast/devtools@1.1.0` if you installed the inspector. Its project
+The Python command should print `1.2.0`. The npm listing should show `@fluxfast/core@1.2.0`,
+`@fluxfast/next@1.2.0`, and `@fluxfast/devtools@1.2.0` if you installed the inspector. Its project
 name, path, and tree formatting vary. A GitHub tag, source checkout, or successful docs deployment
 does not establish which package versions your application has installed.
 
@@ -172,10 +176,10 @@ production exclusion, data-safety limits, and troubleshooting.
 
 ## Package, protocol, and schema versions are different
 
-Neither the published 1.1.0 packages nor the 1.2.0 candidate rename the wire protocol. The application
+Neither the published 1.1.0 nor 1.2.0 packages rename the wire protocol. The application
 contract remains `fluxfast/1`; typed generation uses `fluxfast-schema/2`, with the documented
 schema/1 reader compatibility. Do not derive either identifier from the npm or PyPI version.
 
 Read the [versioning contract](/FluxFast-Docs/versioning/) for compatibility policy, the
 [migration guide](/FluxFast-Docs/migration/) for older release lines, and the
-[v1.1 release notes](/FluxFast-Docs/releases/v1-1-0/) for the published changes.
+[v1.2 release notes](/FluxFast-Docs/releases/v1-2-0/) for the published changes.

@@ -4,7 +4,7 @@ description: "Learn which generated files are stable, how names are derived, and
 slug: "generated-artifacts"
 editUrl: "https://github.com/El37628/FluxFast/edit/main/docs/generated-artifacts.md"
 ---
-> **Version notice:** This page follows the **1.2.0 release candidate**. The latest published stable release is **1.1.0**; the React/Vite host and new Core server/Codegen entry points are not available in 1.1.0. [Check availability before installing](/FluxFast-Docs/version-guide/).
+> **Version notice:** Examples follow stable **FluxFast 1.2.0**. Use matching Python and frontend packages; older 1.1 packages do not provide the React/Vite host or the new Core server/Codegen entry points. [Installation and upgrade steps](/FluxFast-Docs/version-guide/).
 
 FluxFast 0.9 treats the generated frontend API as a compatibility surface. The
 Python application and Pydantic models remain authoritative; generated files

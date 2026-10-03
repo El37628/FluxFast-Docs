@@ -38,7 +38,7 @@ export default defineConfig({
 			title: 'FluxFast',
 			titleDelimiter: '—',
 			description:
-				'Server-driven React applications with FastAPI ownership, Next.js, and the React/Vite release candidate.',
+				'Server-driven React applications with FastAPI ownership and stable Next.js or React/Vite SSR hosts.',
 			logo: {
 				light: './src/assets/fluxfast-logo-light.png',
 				dark: './src/assets/fluxfast-logo-dark.png',
@@ -88,7 +88,7 @@ export default defineConfig({
 					],
 				},
 				{
-					label: 'React / Vite (1.2 candidate)',
+					label: 'React / Vite',
 					items: [
 						{ label: 'Build your first application', slug: 'react-getting-started' },
 						{ label: 'React hooks and components', slug: 'react-api' },
@@ -112,13 +112,13 @@ export default defineConfig({
 						{ label: 'Stable APIs', slug: 'stable-apis' },
 						{ label: 'Advanced Stable APIs', slug: 'advanced-stable-apis' },
 						{ label: 'Advanced API walkthrough', slug: 'advanced-api-walkthrough' },
-						{ label: 'Adapter contract (1.2 candidate)', slug: 'adapter-contract' },
-						{ label: 'Server adapter lab (1.2 candidate)', slug: 'server-api-walkthrough' },
-						{ label: 'Codegen API lab (1.2 candidate)', slug: 'codegen-api-walkthrough' },
+						{ label: 'Adapter contract', slug: 'adapter-contract' },
+						{ label: 'Server adapter walkthrough', slug: 'server-api-walkthrough' },
+						{ label: 'Codegen API walkthrough', slug: 'codegen-api-walkthrough' },
 						{ label: 'Python API', slug: 'python-api' },
 						{ label: '@fluxfast/core', slug: 'core-api' },
 						{ label: '@fluxfast/next', slug: 'next-api' },
-						{ label: '@fluxfast/codegen (1.2 candidate)', slug: 'codegen-api' },
+						{ label: '@fluxfast/codegen', slug: 'codegen-api' },
 						{ label: 'Wire protocol', slug: 'protocol' },
 						{ label: 'Developer schema', slug: 'developer-schema' },
 					],
@@ -136,7 +136,7 @@ export default defineConfig({
 				{
 					label: 'Release notes',
 					items: [
-						{ label: 'FluxFast 1.2.0 (candidate)', slug: 'releases/v1-2-0' },
+						{ label: 'FluxFast 1.2.0', slug: 'releases/v1-2-0' },
 						{ label: 'FluxFast 1.1.0', slug: 'releases/v1-1-0' },
 						{ label: 'FluxFast 1.0.1', slug: 'releases/v1-0-1' },
 						{ label: 'FluxFast 1.0.0', slug: 'releases/v1-0-0' },

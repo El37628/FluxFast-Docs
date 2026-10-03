@@ -4,7 +4,7 @@ description: "Configure server and browser caching without leaking data across u
 slug: "caching"
 editUrl: "https://github.com/El37628/FluxFast/edit/main/docs/caching.md"
 ---
-> **Version notice:** This page follows the **1.2.0 release candidate**. The latest published stable release is **1.1.0**; the React/Vite host and new Core server/Codegen entry points are not available in 1.1.0. [Check availability before installing](/FluxFast-Docs/version-guide/).
+> **Version notice:** Examples follow stable **FluxFast 1.2.0**. Use matching Python and frontend packages; older 1.1 packages do not provide the React/Vite host or the new Core server/Codegen entry points. [Installation and upgrade steps](/FluxFast-Docs/version-guide/).
 
 FluxFast has distinct server resource, browser resource, and browser page
 caches.
